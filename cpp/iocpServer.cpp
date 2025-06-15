@@ -20,7 +20,7 @@ bool IocpServer::Start() {
     }
 
     // 클라이언트 accept 처리 루프
-    AcceptLoop();
+    workerThreads_.emplace_back([this]() { AcceptLoop(); });
     return true;
 }
 
@@ -90,6 +90,7 @@ void IocpServer::WorkerThread() {
         key는 소켓을 iocp에 등록했을 때 함께 넣었던 식별용 값이라 소켓의 번호를 넣어도 완전히 정상적인 동작을 함
         여기서는 클라이언트 세션을 제어할 수 있는 객체의 주소값을 식별자로 넣음
         */
+       IoContext* context = reinterpret_cast<IoContext*>(overlapped); //overlapped 주소 옆에 IoContext의 정보가 보존되어 있기 때문에 해당 캐스팅이 성립함
 
         // 실패하거나 연결이 끊어졌다면 종료 처리
         if (!result || bytesTransferred == 0) {
@@ -98,8 +99,17 @@ void IocpServer::WorkerThread() {
             continue;
         }
 
-        // 수신된 데이터를 처리
-        session->OnReceive(bytesTransferred);
+        //완료란 송수신 받고 난 후를 뜻함. 그래서 completion port
+
+        if (context->operation == OperationType::RECV) { //수신 완료일때
+            //수신된 데이터를 처리 및 재수신 준비
+            session->OnReceiveCompletion(context->buffer, bytesTransferred);
+        } else if (context->operation == OperationType::SEND) {  //송신 완료했을때
+            session->OnSendCompletion();
+        }
+
+        //메모리 해제
+        delete context;
     }
 }
 

@@ -27,9 +27,9 @@ AsyncClient::~AsyncClient() {
 // 서버에 연결 시도
 bool AsyncClient::Connect() {
     sockaddr_in serverAddr = {};
-    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_family = AF_INET; //IPv4
     serverAddr.sin_port = htons(serverPort_);
-    serverAddr.sin_addr.s_addr = inet_addr(serverIp_.c_str());
+    serverAddr.sin_addr.s_addr = inet_addr(serverIp_.c_str()); //서버 주소
 
     int ret = connect(sock_, (sockaddr*)&serverAddr, sizeof(serverAddr));
     if (ret == SOCKET_ERROR) {
@@ -48,12 +48,14 @@ bool AsyncClient::Connect() {
 // 메시지 비동기 전송
 bool AsyncClient::SendToServer(const std::string& message) {
     IoContext sendCtx;
+    //버퍼에 메세지 복사
     memcpy(sendCtx.buffer, message.c_str(), message.size());
 
     sendCtx.wsaBuf.buf = sendCtx.buffer;
     sendCtx.wsaBuf.len = static_cast<ULONG>(message.size());
 
     DWORD bytesSent = 0;
+    //메세지 송신, overlappedIO는 비동기 통신에 사용된다.
     int ret = WSASend(sock_, &sendCtx.wsaBuf, 1, &bytesSent, 0, &sendCtx.overlapped, nullptr);
     if (ret == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
         std::cerr << "WSASend 실패\n";
@@ -73,6 +75,7 @@ bool AsyncClient::ReceiveMessage() {
     DWORD flags = 0;
     DWORD received = 0;
 
+    //메세지 수신
     int ret = WSARecv(sock_, &recvCtx.wsaBuf, 1, &received, &flags, &recvCtx.overlapped, nullptr);
     if (ret == SOCKET_ERROR && WSAGetLastError() != WSA_IO_PENDING) {
         std::cerr << "WSARecv 실패\n";
@@ -82,7 +85,9 @@ bool AsyncClient::ReceiveMessage() {
     // 결과 대기 (비동기지만 여기선 블로킹 처리)
     BOOL result = WSAGetOverlappedResult(sock_, &recvCtx.overlapped, &received, TRUE, &flags);
     if (!result || received == 0) {
+        std::cout<<result<<" "<<received<<" \n";
         std::cerr << "서버 응답 수신 실패 또는 연결 종료됨\n";
+        while(1){};
         return false;
     }
 
