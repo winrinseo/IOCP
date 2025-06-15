@@ -1,11 +1,12 @@
 
 #include <iostream>
-#include "iocp.h"
+#include "iocpServer.h"
 
 // #pragma comment(lib, "ws2_32.lib")
 
 int main(){
     
-    // Iocp iocp(9000);
+    IocpServer iocp(9000);
+
     return 0;
 }

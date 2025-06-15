@@ -12,10 +12,10 @@
 class ClientSession;
 
 // IOCP 기반 서버를 담당하는 클래스
-class Iocp {
+class IocpServer {
 public:
-    Iocp(int port);
-    ~Iocp();
+    IocpServer(int port);
+    ~IocpServer();
 
     // 서버 시작
     bool Start();

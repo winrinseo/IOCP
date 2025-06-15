@@ -3,6 +3,7 @@
 #include <windows.h>
 
 // 클라이언트와의 통신을 담당하는 세션 클래스
+// OVERRAPPED 구조체에서 기능 추가
 class ClientSession {
 public:
     ClientSession(SOCKET socket);

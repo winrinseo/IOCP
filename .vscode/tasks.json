@@ -10,13 +10,14 @@
                 
                 "${file}",
                 "cpp/clientSession.cpp",
-                "cpp/iocp.cpp",
+                "cpp/iocpServer.cpp",
+                "cpp/asyncClient.cpp",
 
                 "-I${fileDirname}\\cpp",
                 "-I${fileDirname}\\header",
 
                 "-lws2_32",
-                
+
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe",
                 
