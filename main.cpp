@@ -10,6 +10,12 @@ int main(){
     SetConsoleCP(CP_UTF8); 
 
     IocpServer iocp(9000);
+    iocp.SetReceiveProcess([](const char * buffer , DWORD bytesTransferred){
+
+        std::cout<<"수신 됨 : "<<std::string(buffer , bytesTransferred)<<"\n";
+        return;
+    });
+
     iocp.Start();
     while(1){}
     return 0;

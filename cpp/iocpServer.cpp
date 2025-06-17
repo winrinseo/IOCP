@@ -1,5 +1,4 @@
 #include "iocpServer.h"
-#include "clientSession.h"
 #include <iostream>
 
 IocpServer::IocpServer(int port)
@@ -102,10 +101,14 @@ void IocpServer::WorkerThread() {
         //완료란 송수신 받고 난 후를 뜻함. 그래서 completion port
 
         if (context->operation == OperationType::RECV) { //수신 완료일때
-            //수신된 데이터를 처리 및 재수신 준비
-            session->OnReceiveCompletion(context->buffer, bytesTransferred);
+            
+            //해당 세션은 재수신 준비
+            session->Receive();
+
+            // 수신 완료시 수행 할 작업
+            OnReceiveCompletion(context->buffer, bytesTransferred);
         } else if (context->operation == OperationType::SEND) {  //송신 완료했을때
-            session->OnSendCompletion();
+            OnSendCompletion();
         }
 
         //메모리 해제
@@ -123,3 +126,24 @@ void IocpServer::Cleanup() {
     CloseHandle(iocpHandle_);
     WSACleanup();
 }
+
+
+void IocpServer::SetReceiveProcess(void (*f)(const char * buffer , DWORD bytesTransferred)){
+    ReceiveProcess = f;
+}
+
+
+
+// 수신 완료 후 처리
+void IocpServer::OnReceiveCompletion(const char * buffer , DWORD bytesTransferred) {
+
+    //대충 여기서 수신 후 연산 수행
+    ReceiveProcess(buffer , bytesTransferred);
+    // std::cout<<"수신 됨 : "<<std::string(buffer , bytesTransferred)<<"\n";
+
+}
+
+
+void IocpServer::OnSendCompletion(){
+    std::cout<<"클라이언트에게 송신 완료"<<"\n";
+};

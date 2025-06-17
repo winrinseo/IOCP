@@ -87,7 +87,6 @@ bool AsyncClient::ReceiveMessage() {
     if (!result || received == 0) {
         std::cout<<result<<" "<<received<<" \n";
         std::cerr << "서버 응답 수신 실패 또는 연결 종료됨\n";
-        while(1){};
         return false;
     }
 

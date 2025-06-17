@@ -9,9 +9,10 @@
                 "-g",
                 
                 "${file}",
-                "cpp/clientSession.cpp",
+                "cpp/session.cpp",
                 "cpp/iocpServer.cpp",
                 "cpp/asyncClient.cpp",
+                
 
                 "-I${fileDirname}\\cpp",
                 "-I${fileDirname}\\header",

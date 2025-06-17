@@ -16,12 +16,12 @@ struct IoContext {
 };
 
 
-// 클라이언트와의 통신을 담당하는 세션 클래스
+// 연결된 개체와의 통신을 담당하는 세션 클래스
 // OVERRAPPED 구조체에서 기능 추가
-class ClientSession {
+class Session {
 public:
-    ClientSession(SOCKET socket);
-    ~ClientSession();
+    Session(SOCKET socket);
+    ~Session();
 
     // 소켓 핸들 및 Overlapped 포인터 반환
     SOCKET GetSocket() const { return socket_; }
@@ -29,13 +29,11 @@ public:
 
     // 데이터 수신 요청
     void Receive();
-
-    // 데이터 수신 완료 처리
-    virtual void OnReceiveCompletion(const char * buffer , DWORD bytesTransferred);
+    
 
     //해당 클라이언트에 메세지 송신
     bool Send(const char * data , int len);
-    virtual void OnSendCompletion();
+    
 
 private:
     SOCKET socket_;                       // 클라이언트 소켓

@@ -1,15 +1,15 @@
-#include "clientSession.h"
+#include "session.h"
 #include <iostream>
 
-ClientSession::ClientSession(SOCKET sock)
+Session::Session(SOCKET sock)
     : socket_(sock) {}
 
-ClientSession::~ClientSession() {
+Session::~Session() {
     closesocket(socket_);
 }
 
 // 클라이언트로부터 데이터를 비동기로 수신 요청
-void ClientSession::Receive() {
+void Session::Receive() {
     DWORD flags = 0;
 
     //메세지를 받을 공간 할당
@@ -33,22 +33,9 @@ void ClientSession::Receive() {
     //메세지 받고 큐에 삽입. 완료되었다고 통보
 }
 
-// 수신 완료 후 처리
-void ClientSession::OnReceiveCompletion(const char * buffer , DWORD bytesTransferred) {
-
-    //대충 여기서 수신 후 연산 수행
-    {
-        std::cout << "받은 데이터: " << std::string(buffer, bytesTransferred) << std::endl;
-        // 받은 데이터를 그대로 에코(되돌려 보냄)
-        Send(buffer , bytesTransferred);
-    }
 
 
-    // 다음 수신 준비
-    Receive();
-}
-
-bool ClientSession::Send(const char * data , int len){
+bool Session::Send(const char * data , int len){
     IoContext* context = new IoContext();
     context->operation = OperationType::SEND; //미리 설정 해두고 클라이언트에 송신 후 iocp에 통보
 
@@ -73,6 +60,3 @@ bool ClientSession::Send(const char * data , int len){
 }
 
 
-void ClientSession::OnSendCompletion(){
-    std::cout<<"클라이언트에게 송신 완료"<<"\n";
-};
