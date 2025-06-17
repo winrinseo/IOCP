@@ -27,9 +27,9 @@ int main(){
             break;
         }
 
-        if (!client.ReceiveMessage()) {
-            break;
-        }
+        // if (!client.ReceiveMessage()) {
+        //     break;
+        // }
     }
 
     return 0;

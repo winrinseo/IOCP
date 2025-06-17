@@ -128,7 +128,7 @@ void IocpServer::Cleanup() {
 }
 
 
-void IocpServer::SetReceiveProcess(void (*f)(const char * buffer , DWORD bytesTransferred)){
+void IocpServer::SetReceiveProcess(std::function<void(const char * buffer , DWORD bytesTransferred)> f){
     ReceiveProcess = f;
 }
 

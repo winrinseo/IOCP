@@ -17,7 +17,7 @@ public:
 
     bool Start();                           // 서버 시작
 
-    void SetReceiveProcess(void (*f)(const char * buffer , DWORD bytesTransferred));   // 수신 완료 작업 설정
+    void SetReceiveProcess(std::function<void(const char * buffer , DWORD bytesTransferred)> f);   // 수신 완료 작업 설정
     void SetSendProcess(void (*f)());       // 송신 완료 작업 설정
 
 private:
@@ -27,7 +27,7 @@ private:
     std::vector<std::thread> workerThreads_; // 워커 쓰레드 목록
     std::unordered_set<ClientSession*> clients_; // 접속한 클라이언트 목록
 
-    void (*ReceiveProcess)(const char * buffer , DWORD bytesTransferred);             // 수신 완료 시 수행 할 작업
+    std::function<void(const char * buffer , DWORD bytesTransferred)> ReceiveProcess;             // 수신 완료 시 수행 할 작업
 
     static const int WORKER_COUNT = 4;    // 워커 쓰레드 개수
 

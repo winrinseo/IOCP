@@ -5,6 +5,7 @@
 #include <thread>
 #include <unordered_set>
 #include <string>
+#include <functional>
 
 #include "session.h"
 
