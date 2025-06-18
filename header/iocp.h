@@ -16,7 +16,7 @@ typedef class Session ServerSession , ClientSession;
 class Iocp {
 public:
     Iocp(int port); // 서버용 생성자
-    Iocp(std::string ip , int port); // 클라용 생성자
+    Iocp(); // 클라용 생성자
     ~Iocp();
 
     void SetReceiveProcess(
@@ -33,6 +33,8 @@ protected:
     typedef std::unordered_set<Session*> connect_;      // 접속한 개체 목록
     connect_ connects_, clients_ , servers_;
 
+    LPFN_ACCEPTEX pAcceptEx;
+
     std::function<void(const char * buffer , DWORD bytesTransferred)> ReceiveProcess; // 수신 완료 시 수행 할 작업
 
     std::function<void()> SendProcess;                                                // 송신 완료 시 수행 할 작업
@@ -43,6 +45,7 @@ protected:
     virtual bool InitWinsock();                   // WinSock 초기화
     virtual bool CreateListenSocket();            // 리슨 소켓 생성
     virtual bool CreateIocp();                    // IOCP 생성
+    virtual void PostAccept();                    // 클라이언트 Accept 비동기 예약
     virtual void AcceptLoop();                    // 클라이언트 Accept 루프
     virtual void WorkerThread();                  // 워커 쓰레드 함수
     virtual void Cleanup();                       // 정리 작업

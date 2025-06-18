@@ -38,6 +38,9 @@ bool AsyncClient::Connect() {
         if (err != WSAEWOULDBLOCK && err != WSAEINPROGRESS) {
             std::cerr << "서버 연결 실패: " << err << "\n";
             return false;
+        }else{
+            std::cerr << "서버 연결 실패: " << err << "\n";
+            return false;
         }
     }
 

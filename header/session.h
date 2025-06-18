@@ -1,19 +1,23 @@
 #pragma once
 #include <winsock2.h>
 #include <windows.h>
+#include <mswsock.h>
+#include <iostream>
 
 
 enum class OperationType {
     RECV,
-    SEND
+    SEND,
+    ACCEPT,
+    CONNECT
 };
 
 //OVERLAPPED 확장
 struct IoContext {
     OVERLAPPED overlapped = {}; // 비동기 I/O를 위한 구조체
-    WSABUF wsaBuf = {}; // 데이터 버퍼 구조체
-    char buffer[1024] = {}; // 실제 데이터 버퍼
     OperationType operation; // 메세지 종류
+    WSABUF wsaBuf = {}; // 데이터 버퍼 구조체
+    char buffer[1024]; // 실제 데이터 버퍼
 };
 
 

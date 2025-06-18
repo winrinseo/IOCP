@@ -4,8 +4,7 @@
 Iocp::Iocp(int port) : 
  port_(port), listenSocket_(INVALID_SOCKET), iocpHandle_(NULL) {}
 
- Iocp::Iocp(std::string ip , int port) : 
- ip_(ip) , port_(port), listenSocket_(INVALID_SOCKET), iocpHandle_(NULL) {}
+ Iocp::Iocp() {}
 
 Iocp::~Iocp() {
     Cleanup();
@@ -19,22 +18,43 @@ bool Iocp::InitWinsock() {
 
 //리슨 소켓 생성 (클라이언트의 연결 요청을 받는 소켓)
 bool Iocp::CreateListenSocket() {
-    //소켓 함수 호출, SOCKET은 파일 디스크럽터
-    listenSocket_ = socket(AF_INET, SOCK_STREAM, 0); // IPv4 , tcp 통신 (udp라면 SOCK_DGRAM)
-    if (listenSocket_ == INVALID_SOCKET) return false;
+    listenSocket_ = WSASocket(AF_INET, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
+    if (listenSocket_ == INVALID_SOCKET) {
+        std::cerr << "listenSocket 생성 실패: " << WSAGetLastError() << "\n";
+        return false;
+    }
 
-    sockaddr_in addr = {};
-    addr.sin_family = AF_INET; //IPv4주소
-    addr.sin_port = htons(port_); //사용할 포트
-    addr.sin_addr.s_addr = INADDR_ANY; //ip할당 INADDR_ANY은 자동 설정
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port_);
+    addr.sin_addr.s_addr = INADDR_ANY;
 
-    //소켓에 정보(주소) 할당 
-    if (bind(listenSocket_, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) return false;
-    //소켓에 정보 할당 후 클라이언트가 연결할 수 있도록 대기하는 상태로 만들어줌
-    if (listen(listenSocket_, SOMAXCONN) == SOCKET_ERROR) return false; //소켓 디스크럽터 번호 , 연결 요청 대기 큐의 크기
+    if (bind(listenSocket_, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+        std::cerr << "bind 실패: " << WSAGetLastError() << "\n";
+        return false;
+    }
+
+    if (listen(listenSocket_, SOMAXCONN) == SOCKET_ERROR) {
+        std::cerr << "listen 실패: " << WSAGetLastError() << "\n";
+        return false;
+    }
+
+    // AcceptEx 함수 포인터 생성
+    DWORD bytes = 0;
+    GUID guidAcceptEx = WSAID_ACCEPTEX;
+    if (WSAIoctl(listenSocket_, SIO_GET_EXTENSION_FUNCTION_POINTER,
+        &guidAcceptEx, sizeof(guidAcceptEx),
+        &pAcceptEx, sizeof(pAcceptEx),
+        &bytes, NULL, NULL) == SOCKET_ERROR) {
+        std::cerr << "AcceptEx 함수 포인터 가져오기 실패: " << WSAGetLastError() << "\n";
+        return false;
+    }
+
+    std::cout << "[디버그] AcceptEx 포인터: " << (void*)pAcceptEx << "\n";
 
     return true;
 }
+
 
 //IOCP 생성
 bool Iocp::CreateIocp() {
@@ -42,6 +62,67 @@ bool Iocp::CreateIocp() {
     iocpHandle_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
     return iocpHandle_ != NULL;
 }
+
+//클라이언트 비동기 연결 예약 (환경이 문제인지는 모르겠는데 안되서 나중에 해야지)
+void Iocp::PostAccept() {
+    // 더미
+    SOCKADDR_IN client_addr;
+    int addr_len = sizeof(client_addr);
+    ZeroMemory(&client_addr, addr_len);
+
+    // 비동기 소켓 생성
+    SOCKET clientSock = WSASocket(AF_INET, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_OVERLAPPED);
+    if (clientSock == INVALID_SOCKET) {
+        std::cerr << "클라이언트 소켓 생성 실패: " << WSAGetLastError() << "\n";
+        return;
+    }
+
+    // 세션 생성 및 소켓 등록
+    ClientSession * session = new ClientSession(clientSock);
+    if (CreateIoCompletionPort((HANDLE)clientSock, iocpHandle_, (ULONG_PTR)session, 0) == NULL) {
+        std::cerr << "IOCP 등록 실패: " << GetLastError() << "\n";
+        closesocket(clientSock);
+        delete session;
+        return;
+    }
+
+
+    // Accept 객체
+    IoContext* context = new IoContext();
+    context->wsaBuf.buf = context->buffer;
+    context->wsaBuf.len = sizeof(context->buffer);
+    context->operation = OperationType::ACCEPT;
+    ZeroMemory(&context->overlapped , sizeof(context->overlapped));
+
+
+    // AcceptEX 예약
+    BOOL ret = pAcceptEx(
+        listenSocket_,
+        clientSock,
+        context->buffer,
+        0,
+        sizeof(SOCKADDR_IN) + 16,
+        sizeof(SOCKADDR_IN) + 16,
+        NULL,
+        &context->overlapped
+    );
+
+
+    if (!ret && WSAGetLastError() != ERROR_IO_PENDING) {
+        std::cerr << "AcceptEx 실패: " << WSAGetLastError() << "\n";
+        closesocket(clientSock);
+        // delete context;
+        delete session;
+        return;
+    }
+
+    std::cout << "[Pre-AcceptEx] listenSocket=" << listenSocket_
+    <<", IOCP handle= "<<iocpHandle_
+          << ", clientSock=" << clientSock
+          << ", overlapped ptr=" << &context->overlapped << "\n";
+          
+}
+
 
 //클라이언트 요청 수락 루프
 void Iocp::AcceptLoop() {
@@ -63,6 +144,9 @@ void Iocp::AcceptLoop() {
     }
 }
 
+
+
+
 //작업 스레드
 void Iocp::WorkerThread() {
     DWORD bytesTransferred;
@@ -70,18 +154,24 @@ void Iocp::WorkerThread() {
     LPOVERLAPPED overlapped;
 
     while (true) {
+    std::cout<<"큐대기 시작"<<"\n";
+
         // 완료된 IO 이벤트를 기다림
         BOOL result = GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &key, &overlapped, INFINITE);
+        std::cout<<"큐 대기 끝"<<"\n";
         ClientSession * session = reinterpret_cast<ClientSession*>(key); //키를 세션 주소로 변환
+
         /* memo
         key는 소켓을 iocp에 등록했을 때 함께 넣었던 식별용 값이라 소켓의 번호를 넣어도 완전히 정상적인 동작을 함
         여기서는 클라이언트 세션을 제어할 수 있는 객체의 주소값을 식별자로 넣음
         */
         IoContext* context = reinterpret_cast<IoContext*>(overlapped); //overlapped 주소 시작 지점에서 순서대로 IoContext의 정보가 보존되어 있기 때문에 해당 캐스팅이 성립함
-
+        
         // 실패하거나 연결이 끊어졌다면 종료 처리
         if (!result || bytesTransferred == 0) {
+            std::cerr<<"연결 종료"<<"\n";
             closesocket(session->GetSocket());
+            clients_.erase(session);
             delete session;
             continue;
         }
@@ -99,6 +189,26 @@ void Iocp::WorkerThread() {
 
         } else if (context->operation == OperationType::SEND) {  //송신 완료했을때
             OnSendCompletion();
+        }else if(context->operation == OperationType::ACCEPT){
+
+            if (setsockopt(session->GetSocket(), SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT,
+               (char*)&listenSocket_, sizeof(SOCKET)) == SOCKET_ERROR) {
+                    std::cerr << "SO_UPDATE_ACCEPT_CONTEXT 실패: " << WSAGetLastError() << "\n";
+                    closesocket(session->GetSocket());
+                    delete session;
+                    delete context;
+                    continue;
+            }
+
+            this->connects_.insert(session);
+            
+            // 클라이언트로부터 비동기 수신 시작
+            if(this->connects_.find(session) != this->connects_.end()) 
+                session->Receive();
+
+            std::cout<<"please"<<"\n";
+            // 다시 연결 걸기
+            PostAccept();
         }
 
         //메모리 해제

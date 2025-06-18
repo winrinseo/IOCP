@@ -3,6 +3,8 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <string>
+#include <iostream>
+#include <mswsock.h>  // ConnectEx 포함
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -18,7 +20,7 @@ class AsyncClient {
 public:
     AsyncClient(const std::string& ip, int port);  // 생성자: 서버 IP와 포트 초기화
     ~AsyncClient();                                // 소멸자: 소켓 정리 및 Winsock 종료
-
+    LPFN_CONNECTEX pConnectEx;
     bool Connect();                                // 서버에 연결 시도
     bool SendToServer(const std::string& message);  // 서버에 메시지 비동기 전송
     bool ReceiveMessage();                         // 서버로부터 메시지 비동기 수신

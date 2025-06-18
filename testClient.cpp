@@ -2,13 +2,16 @@
 #include <iostream>
 #include "asyncClient.h"
 
+
+
 // #pragma comment(lib, "ws2_32.lib")
 
 int main(){
     SetConsoleOutputCP(CP_UTF8);  // 콘솔 출력 인코딩을 UTF-8로 설정
     SetConsoleCP(CP_UTF8); 
     
-    AsyncClient client("127.0.0.1",9000);
+    
+    AsyncClient client("192.168.0.102",9000);
 
 
     if (!client.Connect()) {
