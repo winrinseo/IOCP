@@ -1,8 +1,9 @@
 
 #include <iostream>
-#include "asyncClient.h"
+#include <string>
+#include "iocpClient.h"
 
-
+using namespace std;
 
 // #pragma comment(lib, "ws2_32.lib")
 
@@ -11,11 +12,27 @@ int main(){
     SetConsoleCP(CP_UTF8); 
     
     
-    AsyncClient client("192.168.0.102",9000);
+    IocpClient client;
+    
+    client.SetReceiveProcess([&](Session * session , const char * buffer , DWORD bytesTransferred){
+        cout<<"에코 완료 ! "<<string(buffer , bytesTransferred)<<"\n";
+        return;
+    });
+
+    client.SetSendProcess([&](){
+        cout<<"전송 완료 !!";
+        return;
+    });
+
+    client.Start();
 
 
-    if (!client.Connect()) {
+    if (!client.Connect(GAME,"192.168.0.102",9000)) {
         return 1;
+    }
+
+    for( auto session : client.servers_){
+        cout<<session<<"\n";
     }
 
     while (true) {
@@ -26,9 +43,11 @@ int main(){
         if (msg == "exit")
             break;
 
-        if (!client.SendToServer(msg)) {
-            break;
-        }
+        client.getServer(GAME)->Send(msg.c_str() , msg.size());
+
+        // if (!client.SendToServer(msg)) {
+        //     break;
+        // }
 
         // if (!client.ReceiveMessage()) {
         //     break;

@@ -10,8 +10,8 @@ class IocpClient : public Iocp {
 public:
     IocpClient();
     ~IocpClient();
-    bool Start();
-    bool Connect(SERVER server , std::string ip , int port);                 // 서버 연결
+    bool Start() override;
+    bool Connect(SERVER server , std::string ip , int port);  // 서버 연결
     
     ServerSession * getServer(SERVER server);
     private:

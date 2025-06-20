@@ -10,10 +10,18 @@ Iocp::~Iocp() {
     Cleanup();
 }
 
+
+// Winsock 초기화
 bool Iocp::InitWinsock() {
     WSADATA wsa;
-    // Winsock 초기화
     return WSAStartup(MAKEWORD(2, 2), &wsa) == 0;
+}
+
+//IOCP 생성
+bool Iocp::CreateIocp() {
+    // IOCP 포트 생성
+    iocpHandle_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+    return iocpHandle_ != NULL;
 }
 
 //리슨 소켓 생성 (클라이언트의 연결 요청을 받는 소켓)
@@ -39,6 +47,25 @@ bool Iocp::CreateListenSocket() {
         return false;
     }
 
+    return true;
+}
+
+//iocp 시작
+bool Iocp::Start() {
+    if (!InitWinsock()) return false;
+    if (!CreateIocp()) return false;
+    if (!CreateListenSocket()) return false;
+
+    for (int i = 0; i < WORKER_COUNT; ++i) {
+        workerThreads_.emplace_back([this]() { AcceptLoop(); });
+    }
+
+    // 워커 쓰레드 생성
+    for (int i = 0; i < WORKER_COUNT; ++i) {
+        workerThreads_.emplace_back([this]() { WorkerThread(); });
+    }
+
+    /* AcceptEx 관련 코드
     // AcceptEx 함수 포인터 생성
     DWORD bytes = 0;
     GUID guidAcceptEx = WSAID_ACCEPTEX;
@@ -49,19 +76,17 @@ bool Iocp::CreateListenSocket() {
         std::cerr << "AcceptEx 함수 포인터 가져오기 실패: " << WSAGetLastError() << "\n";
         return false;
     }
+    
 
     std::cout << "[디버그] AcceptEx 포인터: " << (void*)pAcceptEx << "\n";
 
+    // 클라이언트 accept 처리 (미리 많이 예약해놓음)
+    for(int i = 0;i<WORKER_COUNT * 2;i++)
+        PostAccept();
+    */
     return true;
 }
 
-
-//IOCP 생성
-bool Iocp::CreateIocp() {
-    // IOCP 포트 생성
-    iocpHandle_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
-    return iocpHandle_ != NULL;
-}
 
 //클라이언트 비동기 연결 예약 (환경이 문제인지는 모르겠는데 안되서 나중에 해야지)
 void Iocp::PostAccept() {
@@ -154,12 +179,10 @@ void Iocp::WorkerThread() {
     LPOVERLAPPED overlapped;
 
     while (true) {
-    std::cout<<"큐대기 시작"<<"\n";
-
         // 완료된 IO 이벤트를 기다림
         BOOL result = GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &key, &overlapped, INFINITE);
-        std::cout<<"큐 대기 끝"<<"\n";
-        ClientSession * session = reinterpret_cast<ClientSession*>(key); //키를 세션 주소로 변환
+        
+        Session * session = reinterpret_cast<Session*>(key); //키를 세션 주소로 변환
 
         /* memo
         key는 소켓을 iocp에 등록했을 때 함께 넣었던 식별용 값이라 소켓의 번호를 넣어도 완전히 정상적인 동작을 함
@@ -171,13 +194,12 @@ void Iocp::WorkerThread() {
         if (!result || bytesTransferred == 0) {
             std::cerr<<"연결 종료"<<"\n";
             closesocket(session->GetSocket());
-            clients_.erase(session);
+            connects_.erase(session);
             delete session;
             continue;
         }
-
+        
         //완료란 송수신 받고 난 후를 뜻함. 그래서 completion port
-
         if (context->operation == OperationType::RECV) { //수신 완료일때
             
             //해당 세션은 재수신 준비
@@ -185,7 +207,7 @@ void Iocp::WorkerThread() {
                 session->Receive();
 
             // 수신 완료시 수행 할 작업
-            OnReceiveCompletion(context->buffer, bytesTransferred);
+            OnReceiveCompletion(session , context->buffer, bytesTransferred);
 
         } else if (context->operation == OperationType::SEND) {  //송신 완료했을때
             OnSendCompletion();
@@ -230,11 +252,11 @@ void Iocp::Cleanup() {
 
 
 // 수신 완료 후 처리
-void Iocp::OnReceiveCompletion(const char * buffer , DWORD bytesTransferred) {
+void Iocp::OnReceiveCompletion(Session * session , const char * buffer , DWORD bytesTransferred) {
 
     //대충 여기서 수신 후 연산 수행
     try{
-        ReceiveProcess(buffer , bytesTransferred);
+        ReceiveProcess(session , buffer , bytesTransferred);
     }catch(...){
         std::cerr<<"ReceiveProcess 부재"<<"\n";
     }
@@ -248,7 +270,7 @@ void Iocp::OnSendCompletion(){
     }
 };
 
-void Iocp::SetReceiveProcess(std::function<void(const char * buffer , DWORD bytesTransferred)> f){
+void Iocp::SetReceiveProcess(std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> f){
     ReceiveProcess = f;
 }
 

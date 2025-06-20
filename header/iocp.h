@@ -20,9 +20,11 @@ public:
     ~Iocp();
 
     void SetReceiveProcess(
-        std::function<void(const char * buffer , DWORD bytesTransferred)> f);   // 수신 완료 작업 설정
+        std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> f);   // 수신 완료 작업 설정
     void SetSendProcess(
         std::function<void()> f);       // 송신 완료 작업 설정
+
+        
 
 protected:
     std::string ip_;                                     // 연결 요청 IP
@@ -30,12 +32,11 @@ protected:
     SOCKET listenSocket_;                               // 리슨 소켓
     HANDLE iocpHandle_;                                 // IOCP 핸들
     std::vector<std::thread> workerThreads_;            // 워커 쓰레드 목록
-    typedef std::unordered_set<Session*> connect_;      // 접속한 개체 목록
-    connect_ connects_, clients_ , servers_;
+    std::unordered_set<Session*> connects_;     // 연결된 개체 목록
 
-    LPFN_ACCEPTEX pAcceptEx;
+    LPFN_ACCEPTEX pAcceptEx;                            //AcceptEx 함수 포인터터
 
-    std::function<void(const char * buffer , DWORD bytesTransferred)> ReceiveProcess; // 수신 완료 시 수행 할 작업
+    std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> ReceiveProcess; // 수신 완료 시 수행 할 작업
 
     std::function<void()> SendProcess;                                                // 송신 완료 시 수행 할 작업
 
@@ -45,12 +46,14 @@ protected:
     virtual bool InitWinsock();                   // WinSock 초기화
     virtual bool CreateListenSocket();            // 리슨 소켓 생성
     virtual bool CreateIocp();                    // IOCP 생성
+    virtual bool Start();                         // 시작
     virtual void PostAccept();                    // 클라이언트 Accept 비동기 예약
     virtual void AcceptLoop();                    // 클라이언트 Accept 루프
     virtual void WorkerThread();                  // 워커 쓰레드 함수
     virtual void Cleanup();                       // 정리 작업
 
 
-    void OnReceiveCompletion(const char * buffer , DWORD bytesTransferred); // 데이터 수신 완료 처리
+private:
+    void OnReceiveCompletion(Session * session , const char * buffer , DWORD bytesTransferred); // 데이터 수신 완료 처리
     void OnSendCompletion();    // 데이터 송신 완료 처리
 };

@@ -20,6 +20,8 @@ void Session::Receive() {
     context->wsaBuf.buf = context->buffer;
     context->wsaBuf.len = sizeof(context->buffer);
 
+    std::cout<<this<<" "<<"받을 준비"<<"\n";
+
     //논블로킹 소켓 함수
     int ret = WSARecv(socket_, &context->wsaBuf, 1, nullptr, &flags, &context->overlapped, nullptr);
     if (ret == SOCKET_ERROR) {
