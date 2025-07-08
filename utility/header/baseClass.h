@@ -5,6 +5,8 @@
 #include <initializer_list>
 #include <functional>
 #include <vector>
+#include <stdexcept>
+#include <cstdint>
 #define OffsetOf(c,mv) ((size_t)& static_cast<c*>(nullptr)->mv)
 
 #define REFLECTABLE(CLASS, ...) \

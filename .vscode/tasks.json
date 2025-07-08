@@ -18,6 +18,7 @@
                 "utility/cpp/inputMemoryStream.cpp",
                 "utility/cpp/memoryStream.cpp",
                 "utility/cpp/OutputMemoryStream.cpp",
+                "utility/cpp/messageManager.cpp",
                 
 
             

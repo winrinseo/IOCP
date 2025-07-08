@@ -9,6 +9,7 @@
 
 #include "outputMemoryStream.h"
 #include "inputMemoryStream.h"
+#include "messageManager.h"
 
 #include "session.h"
 
@@ -28,7 +29,7 @@ public:
     void SetSendProcess(
         std::function<void()> f);       // 송신 완료 작업 설정
 
-        
+    void RpcRegist(BaseMessage* reg , std::function<void(BaseMessage*)> f); // 원격 호출 함수 등록
 
 protected:
     std::string ip_;                                     // 연결 요청 IP
@@ -36,14 +37,16 @@ protected:
     SOCKET listenSocket_;                               // 리슨 소켓
     HANDLE iocpHandle_;                                 // IOCP 핸들
     std::vector<std::thread> workerThreads_;            // 워커 쓰레드 목록
-    std::unordered_set<Session*> connects_;     // 연결된 개체 목록
+    std::unordered_set<Session*> connects_;             // 연결된 개체 목록
 
     LPFN_ACCEPTEX pAcceptEx;                            //AcceptEx 함수 포인터
 
-    std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> ReceiveProcess; // 수신 완료 시 수행 할 작업
+    std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> 
+                            ReceiveProcess;              // 수신 완료 시 수행 할 작업
 
-    std::function<void()> SendProcess;                                                // 송신 완료 시 수행 할 작업
+    std::function<void()> SendProcess;                   // 송신 완료 시 수행 할 작업
 
+    
     static const int WORKER_COUNT = 4;                  // 워커 쓰레드 개수
 
     // 내부 동작 함수들
@@ -58,6 +61,12 @@ protected:
 
 
 private:
+    MessageManager messageManager;                      // 메세지 매니저 ( 수신된 메세지에 따른 동작 지정)
+    
+    bool _thread;
+    bool _accept;
+    
     void OnReceiveCompletion(Session * session , const char * buffer , DWORD bytesTransferred); // 데이터 수신 완료 처리
     void OnSendCompletion();    // 데이터 송신 완료 처리
+
 };

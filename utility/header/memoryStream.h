@@ -7,7 +7,6 @@
 #include <cstring>
 #include <string>
 #include <vector>
-#include <stdexcept>
 
 #include "baseMessage.h"
 
@@ -56,7 +55,7 @@ public:
     virtual void Serialize(void * data , uint32_t inByteCount) = 0;  // 변수 하나를 직렬화 or 역직렬화
     virtual bool IsInput() = 0;                                 // 메모리 input or output
 
-public:
+protected:
     char * buffer;
     int mHead;
     int mCapacity;

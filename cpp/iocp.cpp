@@ -10,6 +10,10 @@ Iocp::~Iocp() {
     Cleanup();
 }
 
+void Iocp::RpcRegist(BaseMessage* reg , std::function<void(BaseMessage*)> f){
+    messageManager.regist(reg , f);
+}
+
 
 // Winsock 초기화
 bool Iocp::InitWinsock() {
@@ -55,6 +59,9 @@ bool Iocp::Start() {
     if (!InitWinsock()) return false;
     if (!CreateIocp()) return false;
     if (!CreateListenSocket()) return false;
+
+    _thread = true;
+    _accept = true;
 
     for (int i = 0; i < WORKER_COUNT; ++i) {
         workerThreads_.emplace_back([this]() { AcceptLoop(); });
@@ -206,11 +213,18 @@ void Iocp::WorkerThread() {
             if(this->connects_.find(session) != this->connects_.end()) 
                 session->Receive();
 
+            
+            // 역직렬화
+            BaseMessage * msg = messageManager.Dispatch(context->buffer , bytesTransferred);
+            // 원격 프로시저 호출
+            messageManager.CallRPC(msg);
+
             // 수신 완료시 수행 할 작업
             OnReceiveCompletion(session , context->buffer, bytesTransferred);
 
         } else if (context->operation == OperationType::SEND) {  //송신 완료했을때
             OnSendCompletion();
+
         }else if(context->operation == OperationType::ACCEPT){
 
             if (setsockopt(session->GetSocket(), SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT,
@@ -238,6 +252,9 @@ void Iocp::WorkerThread() {
 }
 
 void Iocp::Cleanup() {
+
+    _thread = false;
+    _accept = false;
     // 모든 세션 삭제
     for (auto session : connects_) delete session;
     connects_.clear();
@@ -253,19 +270,18 @@ void Iocp::Cleanup() {
 // 수신 완료 후 처리
 void Iocp::OnReceiveCompletion(Session * session , const char * buffer , DWORD bytesTransferred) {
 
-    //대충 여기서 수신 후 연산 수행
-    // try{
+    try{
         ReceiveProcess(session , buffer , bytesTransferred);
-    // }catch(const std::exception& e){
-    //     std::cerr<<"ReceiveProcess 에러 : "<<e.what()<<"\n";
-    // }
+    }catch(const std::exception& e){
+        std::cerr<<"ReceiveProcess 에러 : "<<e.what()<<"\n";
+    }
 }
 
 void Iocp::OnSendCompletion(){
     try{
         SendProcess();
-    }catch(...){
-        // std::cerr<<"SendProcess 부재"<<"\n";
+    }catch(const std::exception& e){
+        std::cerr<<"ReceiveProcess 에러 : "<<e.what()<<"\n";
     }
 };
 

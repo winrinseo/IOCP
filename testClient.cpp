@@ -21,8 +21,10 @@ int main(){
     OutputMemoryStream outputStream;
     Command * cmd = new Command();
     cmd->num = 4;
+    Player m; m.mId = 168; m.mName = "winrinseo"; m.mScore = {6,10,11};
     Player p; p.mId = 1; p.mName = "우린"; p.mScore = {4,5};
     Player p1; p1.mId = 2; p1.mName = "dnfls"; p1.mScore = {2,7};
+    cmd->me = &m;
     cmd->cmdDeck.push_back(&p);
     cmd->cmdDeck.push_back(&p1);
 

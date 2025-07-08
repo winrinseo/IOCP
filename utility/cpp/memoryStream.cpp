@@ -57,6 +57,7 @@ void MemoryStream::SerializeVector(std::vector<T>& vec) {
             SerializeString(vec[i]);
         }else if constexpr (std::is_pointer_v<T>
                          && std::is_base_of_v<BaseClass, std::remove_pointer_t<T>>) {
+                            // 베이스 클래스를 상속받은 포인터 타입인지 확인
             // 사용자 정의 타입, 베이스 클래스 벡터는 원소로 주소값을 가지고있음
             Serialize(reinterpret_cast<BaseClass*>(vec[i])); // 개별 필드를 순회하는 메타 기반 함수
         }
@@ -153,8 +154,17 @@ void MemoryStream::Serialize(BaseClass * data){
                 
             
             default: // 사용자 정의 클래스
-                Serialize((BaseClass * ) mvData);
+            {
+                //포인터 변수 mvData도 포인터 변수를 가지기기 때문에 역참조를 위해 더블포인터 사용
+                BaseClass** classPtr = reinterpret_cast<BaseClass**>(mvData);
+                // 역직렬화에서는 정보를 담을 객체를 준비해주는 과정이 필요하다.
+                if(IsInput()){
+                    // 타입이 클래스 포인터형일 경우
+                    *classPtr = mv.CreateInstance();
+                }
+                Serialize(*classPtr);
                 break;
+            }
         }
     }
     
