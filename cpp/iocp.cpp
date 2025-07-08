@@ -228,7 +228,6 @@ void Iocp::WorkerThread() {
             if(this->connects_.find(session) != this->connects_.end()) 
                 session->Receive();
 
-            std::cout<<"please"<<"\n";
             // 다시 연결 걸기
             PostAccept();
         }
@@ -255,11 +254,11 @@ void Iocp::Cleanup() {
 void Iocp::OnReceiveCompletion(Session * session , const char * buffer , DWORD bytesTransferred) {
 
     //대충 여기서 수신 후 연산 수행
-    try{
+    // try{
         ReceiveProcess(session , buffer , bytesTransferred);
-    }catch(...){
-        std::cerr<<"ReceiveProcess 부재"<<"\n";
-    }
+    // }catch(const std::exception& e){
+    //     std::cerr<<"ReceiveProcess 에러 : "<<e.what()<<"\n";
+    // }
 }
 
 void Iocp::OnSendCompletion(){

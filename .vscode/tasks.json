@@ -14,10 +14,17 @@
                 "cpp/iocpServer.cpp",
                 "cpp/iocpClient.cpp",
                 "cpp/asyncClient.cpp",
+
+                "utility/cpp/inputMemoryStream.cpp",
+                "utility/cpp/memoryStream.cpp",
+                "utility/cpp/OutputMemoryStream.cpp",
                 
 
+            
                 "-I${fileDirname}\\cpp",
                 "-I${fileDirname}\\header",
+                "-I${fileDirname}\\utility\\cpp",
+                "-I${fileDirname}\\utility\\header",
 
                 "-lws2_32",
                 "-lmswsock",

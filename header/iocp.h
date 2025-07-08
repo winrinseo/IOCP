@@ -7,7 +7,11 @@
 #include <string>
 #include <functional>
 
+#include "outputMemoryStream.h"
+#include "inputMemoryStream.h"
+
 #include "session.h"
+
 
 // 세션은 연결된 개체가 무엇인지에 따라 구분해 부를 수 있어야함
 typedef class Session ServerSession , ClientSession;
@@ -34,7 +38,7 @@ protected:
     std::vector<std::thread> workerThreads_;            // 워커 쓰레드 목록
     std::unordered_set<Session*> connects_;     // 연결된 개체 목록
 
-    LPFN_ACCEPTEX pAcceptEx;                            //AcceptEx 함수 포인터터
+    LPFN_ACCEPTEX pAcceptEx;                            //AcceptEx 함수 포인터
 
     std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> ReceiveProcess; // 수신 완료 시 수행 할 작업
 

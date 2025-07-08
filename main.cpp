@@ -1,19 +1,45 @@
 
 #include <iostream>
+
 #include "iocpServer.h"
 
 // #pragma comment(lib, "ws2_32.lib")
+
 
 int main(){
 
     SetConsoleOutputCP(CP_UTF8);  // 콘솔 출력 인코딩을 UTF-8로 설정
     SetConsoleCP(CP_UTF8); 
 
+    Player::InitDataType();
+    Command::InitDataType();
+
     IocpServer iocp(9000);
     iocp.SetReceiveProcess([&](Session * session ,const char * buffer , DWORD bytesTransferred){
+        std::cout<<"RECEIVE!!"<<" ";
+        
+        InputMemoryStream inputStream;
+        inputStream.Prepare((char*)buffer , bytesTransferred);
+        //1바이트 역직렬화 하고
+        uint8_t mId;
+        inputStream.Serialize(&mId , sizeof(uint8_t));
+        std::cout<<inputStream.mHead<<"\n";
 
+        //메세지 관리자에서 번호보고 객체 생성
+        Command * cmd = new Command();
+
+        //역직렬화
+        inputStream.SerializeMessage((BaseMessage *)cmd);
+
+        //원격 프로시저 호출
+        for(int i = 0;i<cmd->cmdDeck.size();i++){
+            std::cout<<"정보 : "<<cmd->cmdDeck[i]->mId<<" "<<cmd->cmdDeck[i]->mName<<" "<<
+            cmd->cmdDeck[i]->mScore[0]<<" "<<cmd->cmdDeck[i]->mScore[1]<<" ";
+            
+        }
+        std::cout<<"\n";
         session->Send(buffer , bytesTransferred);
-        std::cout<<"수신 됨 : "<<std::string(buffer , bytesTransferred)<<"\n";
+        // std::cout<<"수신 됨 : "<<std::string(buffer , bytesTransferred)<<"\n";
         return;
     });
 

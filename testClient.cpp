@@ -1,7 +1,10 @@
 
 #include <iostream>
 #include <string>
+#include "outputMemoryStream.h"
+#include "inputMemoryStream.h"
 #include "iocpClient.h"
+
 
 using namespace std;
 
@@ -10,12 +13,24 @@ using namespace std;
 int main(){
     SetConsoleOutputCP(CP_UTF8);  // 콘솔 출력 인코딩을 UTF-8로 설정
     SetConsoleCP(CP_UTF8); 
-    
+    Player::InitDataType();
+    Command::InitDataType();
     
     IocpClient client;
+
+    OutputMemoryStream outputStream;
+    Command * cmd = new Command();
+    cmd->num = 4;
+    Player p; p.mId = 1; p.mName = "우린"; p.mScore = {4,5};
+    Player p1; p1.mId = 2; p1.mName = "dnfls"; p1.mScore = {2,7};
+    cmd->cmdDeck.push_back(&p);
+    cmd->cmdDeck.push_back(&p1);
+
+    outputStream.Prepare();
+    outputStream.SerializeMessage((BaseMessage*)cmd);
     
     client.SetReceiveProcess([&](Session * session , const char * buffer , DWORD bytesTransferred){
-        cout<<"에코 완료 ! "<<string(buffer , bytesTransferred)<<"\n";
+        // cout<<"에코 완료 ! "<<string(buffer , bytesTransferred)<<"\n";
         return;
     });
 
@@ -31,10 +46,6 @@ int main(){
         return 1;
     }
 
-    for( auto session : client.servers_){
-        cout<<session<<"\n";
-    }
-
     while (true) {
         std::string msg;
         std::cout << "> ";
@@ -43,7 +54,7 @@ int main(){
         if (msg == "exit")
             break;
 
-        client.getServer(GAME)->Send(msg.c_str() , msg.size());
+        client.getServer(GAME)->Send(outputStream.GetBuffer() , outputStream.GetLength());
 
         // if (!client.SendToServer(msg)) {
         //     break;
