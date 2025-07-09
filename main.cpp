@@ -26,9 +26,6 @@ int main(){
     SetConsoleOutputCP(CP_UTF8);  // 콘솔 출력 인코딩을 UTF-8로 설정
     SetConsoleCP(CP_UTF8); 
 
-    Player::InitDataType();
-    Command::InitDataType();
-
     IocpServer iocp(9000);
 
 

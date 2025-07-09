@@ -11,6 +11,12 @@ IocpClient::~IocpClient(){
 bool IocpClient::Start() {
     if (!InitWinsock()) std::cerr << "WSAStartup 실패\n";
     if (!CreateIocp()) std::cout<<"iocp 실패"<<"\n";
+
+    // 서버 동작 중엔 RPC 등록 불가능
+    messageManager.RegistRock();
+
+    _thread = true;
+    _accept = true;
     
     //서버 세션 객체 생성 (연결은 따로 해야댐)
     for(int i = 0;i<SERVER::end;i++){

@@ -60,6 +60,9 @@ bool Iocp::Start() {
     if (!CreateIocp()) return false;
     if (!CreateListenSocket()) return false;
 
+    // 서버 동작 중엔 RPC 등록 불가능
+    messageManager.RegistRock();
+
     _thread = true;
     _accept = true;
 
@@ -159,7 +162,7 @@ void Iocp::PostAccept() {
 //클라이언트 요청 수락 루프
 void Iocp::AcceptLoop() {
     // 클라이언트를 무한히 받아들임
-    while (true) {
+    while (_accept) {
         //해당 리슨 소켓으로 연결 요청을 수락, 클라이언트 소켓의 디스크럽터 획득
         SOCKET clientSock = accept(listenSocket_, NULL, NULL);
         if (clientSock == INVALID_SOCKET) continue;
@@ -185,7 +188,7 @@ void Iocp::WorkerThread() {
     ULONG_PTR key;
     LPOVERLAPPED overlapped;
 
-    while (true) {
+    while (_thread) {
         // 완료된 IO 이벤트를 기다림
         BOOL result = GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &key, &overlapped, INFINITE);
         
@@ -252,6 +255,8 @@ void Iocp::WorkerThread() {
 }
 
 void Iocp::Cleanup() {
+    
+    messageManager.RegistUnrock();
 
     _thread = false;
     _accept = false;

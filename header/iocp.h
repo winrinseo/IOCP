@@ -24,6 +24,9 @@ public:
     Iocp(); // 클라용 생성자
     ~Iocp();
 
+    virtual bool Start();                         // 시작
+    virtual void Cleanup();                       // 정리 작업
+
     void SetReceiveProcess(
         std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> f);   // 수신 완료 작업 설정
     void SetSendProcess(
@@ -46,26 +49,24 @@ protected:
 
     std::function<void()> SendProcess;                   // 송신 완료 시 수행 할 작업
 
-    
+    MessageManager messageManager;                      // 메세지 매니저 ( 수신된 메세지에 따른 동작 지정)
+
+    bool _thread;
+    bool _accept;
+
     static const int WORKER_COUNT = 4;                  // 워커 쓰레드 개수
 
     // 내부 동작 함수들
     virtual bool InitWinsock();                   // WinSock 초기화
     virtual bool CreateListenSocket();            // 리슨 소켓 생성
     virtual bool CreateIocp();                    // IOCP 생성
-    virtual bool Start();                         // 시작
     virtual void PostAccept();                    // 클라이언트 Accept 비동기 예약
     virtual void AcceptLoop();                    // 클라이언트 Accept 루프
     virtual void WorkerThread();                  // 워커 쓰레드 함수
-    virtual void Cleanup();                       // 정리 작업
+    
 
 
 private:
-    MessageManager messageManager;                      // 메세지 매니저 ( 수신된 메세지에 따른 동작 지정)
-    
-    bool _thread;
-    bool _accept;
-    
     void OnReceiveCompletion(Session * session , const char * buffer , DWORD bytesTransferred); // 데이터 수신 완료 처리
     void OnSendCompletion();    // 데이터 송신 완료 처리
 

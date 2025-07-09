@@ -10,11 +10,11 @@
 #define OffsetOf(c,mv) ((size_t)& static_cast<c*>(nullptr)->mv)
 
 #define REFLECTABLE(CLASS, ...) \
-    inline static DataType* sDataType = nullptr; \
-    const std::vector<MemberVariable>& GetDataType() const override { return sDataType->GetMemberVariables(); } \
-    static void InitDataType() { \
-        sDataType = new DataType({ __VA_ARGS__ }); \
-    }
+    const std::vector<MemberVariable>& GetDataType() const override { \
+        static DataType sDataType({ __VA_ARGS__ }); \
+        return sDataType.GetMemberVariables(); \
+    } // 이미 생성되었을 경우 자동으로 생략됨
+
 
 enum Type{
     Int8,
