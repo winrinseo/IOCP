@@ -3,19 +3,21 @@
 #include <windows.h>
 #include <mswsock.h>
 #include <iostream>
+#include <cstdint>
 
 
-enum class OperationType {
-    RECV,
-    SEND,
+typedef enum _operationType {
     ACCEPT,
-    CONNECT
-};
+    CONNECT,
+    RECV,
+    SEND
+} OperationType;
 
 //OVERLAPPED 확장
 struct IoContext {
     OVERLAPPED overlapped = {}; // 비동기 I/O를 위한 구조체
     OperationType operation; // 메세지 종류
+    uint32_t connectId;     // AcceptEX시 소켓 아이디 식별용
     WSABUF wsaBuf = {}; // 데이터 버퍼 구조체
     char buffer[1024]; // 실제 데이터 버퍼
 };

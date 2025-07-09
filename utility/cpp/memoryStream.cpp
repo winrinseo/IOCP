@@ -155,7 +155,7 @@ void MemoryStream::Serialize(BaseClass * data){
             
             default: // 사용자 정의 클래스
             {
-                //포인터 변수 mvData도 포인터 변수를 가지기기 때문에 역참조를 위해 더블포인터 사용
+                //포인터 변수 mvData도 포인터 변수를 가지기 때문에 역참조를 위해 더블포인터 사용
                 BaseClass** classPtr = reinterpret_cast<BaseClass**>(mvData);
                 // 역직렬화에서는 정보를 담을 객체를 준비해주는 과정이 필요하다.
                 if(IsInput()){

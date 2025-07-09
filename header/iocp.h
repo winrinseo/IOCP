@@ -14,6 +14,8 @@
 
 #include "session.h"
 
+#define LISTENSOCKET_ID 987654321
+
 
 // 세션은 연결된 개체가 무엇인지에 따라 구분해 부를 수 있어야함
 typedef class Session ServerSession , ClientSession;
@@ -43,10 +45,13 @@ protected:
     std::vector<std::thread> workerThreads_;            // 워커 쓰레드 목록
 
     std::mutex connectMutex;                            // 클라이언트 id 부여의 동기화
-    uint32_t connectCount;                              // 연결된 객체 수 (클라이언트 id 부여에 사용)
+    std::mutex sessionsMutex;                          // 세션 목록 동기화
+    uint32_t connectId;                                 // 생성된 소켓 수 (클라이언트 id 부여에 사용)
+    uint32_t connectCount;                              // 연결된 객체 수
     std::unordered_map<uint32_t, std::unique_ptr<Session>> connects_;   // 연결된 개체 목록
 
     LPFN_ACCEPTEX pAcceptEx;                            //AcceptEx 함수 포인터
+    LPFN_CONNECTEX pConnectEx;                          //ConnectEx 함수 포인터
 
     std::function<void(uint32_t & sessionId , const char * buffer , DWORD bytesTransferred)> 
                             ReceiveProcess;              // 수신 완료 시 수행 할 작업
