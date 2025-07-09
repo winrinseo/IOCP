@@ -29,7 +29,7 @@ int main(){
     outputStream.Prepare();
     outputStream.SerializeMessage((BaseMessage*)cmd);
     
-    client.SetReceiveProcess([&](Session * session , const char * buffer , DWORD bytesTransferred){
+    client.SetReceiveProcess([&](uint32_t & sessionId , const char * buffer , DWORD bytesTransferred){
         // cout<<"에코 완료 ! "<<string(buffer , bytesTransferred)<<"\n";
         return;
     });

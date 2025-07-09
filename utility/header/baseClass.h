@@ -46,7 +46,7 @@ public:
     }
 
 private:
-    std::string mName;
+    std::string mName; // 디버깅용
     Type mType;
     uint32_t mOffset;
 

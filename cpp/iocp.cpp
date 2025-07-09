@@ -63,6 +63,9 @@ bool Iocp::Start() {
     // 서버 동작 중엔 RPC 등록 불가능
     messageManager.RegistRock();
 
+    // id 초기화 (클라이언트 id는 10000부터 시작)
+    connectCount = 10000;
+
     _thread = true;
     _accept = true;
 
@@ -112,12 +115,23 @@ void Iocp::PostAccept() {
         return;
     }
 
+
     // 세션 생성 및 소켓 등록
-    ClientSession * session = new ClientSession(clientSock);
-    if (CreateIoCompletionPort((HANDLE)clientSock, iocpHandle_, (ULONG_PTR)session, 0) == NULL) {
+    std::unique_ptr<Session> session = std::make_unique<Session>(clientSock);
+    uint32_t clientId = -1;
+    {   
+        // 클라이언트 id 부여 동기화
+        std::lock_guard<std::mutex> idLock(connectMutex);
+        clientId = ++connectCount;
+    }
+
+    // unique_ptr 소유권 이전
+    connects_[clientId] = std::move(session);
+    
+    if (CreateIoCompletionPort((HANDLE)clientSock, iocpHandle_, (ULONG_PTR)clientId, 0) == NULL) {
         std::cerr << "IOCP 등록 실패: " << GetLastError() << "\n";
         closesocket(clientSock);
-        delete session;
+        connects_.erase(clientId);
         return;
     }
 
@@ -147,7 +161,7 @@ void Iocp::PostAccept() {
         std::cerr << "AcceptEx 실패: " << WSAGetLastError() << "\n";
         closesocket(clientSock);
         // delete context;
-        delete session;
+        connects_.erase(clientId);
         return;
     }
 
@@ -168,14 +182,22 @@ void Iocp::AcceptLoop() {
         if (clientSock == INVALID_SOCKET) continue;
 
         // 새 클라이언트 세션 생성
-        auto session = new ClientSession(clientSock);
-        connects_.insert(session);
+        std::unique_ptr<Session> session = std::make_unique<Session>(clientSock);
+        uint32_t clientId = -1;
+        {   
+            // 클라이언트 id 부여 동기화
+            std::lock_guard<std::mutex> idLock(connectMutex);
+            clientId = ++connectCount;
+        }
+        
+        // unique_ptr 소유권 이전
+        connects_[clientId] = std::move(session);
 
         // 클라이언트 소켓을 IOCP에 등록
-        CreateIoCompletionPort((HANDLE)clientSock, iocpHandle_, (ULONG_PTR)session, 0);
+        CreateIoCompletionPort((HANDLE)clientSock, iocpHandle_, (ULONG_PTR)clientId, 0);
 
         // 클라이언트로부터 비동기 수신 시작
-        session->Receive();
+        connects_[clientId]->Receive();
     }
 }
 
@@ -192,7 +214,7 @@ void Iocp::WorkerThread() {
         // 완료된 IO 이벤트를 기다림
         BOOL result = GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &key, &overlapped, INFINITE);
         
-        Session * session = reinterpret_cast<Session*>(key); //키를 세션 주소로 변환
+        uint32_t sessionId = static_cast<uint32_t>(key); //키를 session id로 변환
 
         /* memo
         key는 소켓을 iocp에 등록했을 때 함께 넣었던 식별용 값이라 소켓의 번호를 넣어도 완전히 정상적인 동작을 함
@@ -203,9 +225,8 @@ void Iocp::WorkerThread() {
         // 실패하거나 연결이 끊어졌다면 종료 처리
         if (!result || bytesTransferred == 0) {
             std::cerr<<"연결 종료"<<"\n";
-            closesocket(session->GetSocket());
-            connects_.erase(session);
-            delete session;
+            closesocket(connects_[sessionId]->GetSocket());
+            connects_.erase(sessionId);
             continue;
         }
         
@@ -213,8 +234,8 @@ void Iocp::WorkerThread() {
         if (context->operation == OperationType::RECV) { //수신 완료일때
             
             //해당 세션은 재수신 준비
-            if(this->connects_.find(session) != this->connects_.end()) 
-                session->Receive();
+            if(this->connects_.find(sessionId) != this->connects_.end()) 
+                connects_[sessionId]->Receive();
 
             
             // 역직렬화
@@ -223,27 +244,26 @@ void Iocp::WorkerThread() {
             messageManager.CallRPC(msg);
 
             // 수신 완료시 수행 할 작업
-            OnReceiveCompletion(session , context->buffer, bytesTransferred);
+            OnReceiveCompletion(sessionId , context->buffer, bytesTransferred);
 
         } else if (context->operation == OperationType::SEND) {  //송신 완료했을때
             OnSendCompletion();
 
         }else if(context->operation == OperationType::ACCEPT){
 
-            if (setsockopt(session->GetSocket(), SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT,
+            if (setsockopt(connects_[sessionId]->GetSocket(), SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT,
                (char*)&listenSocket_, sizeof(SOCKET)) == SOCKET_ERROR) {
                     std::cerr << "SO_UPDATE_ACCEPT_CONTEXT 실패: " << WSAGetLastError() << "\n";
-                    closesocket(session->GetSocket());
-                    delete session;
+                    closesocket(connects_[sessionId]->GetSocket());
                     delete context;
                     continue;
             }
 
-            this->connects_.insert(session);
+            // this->connects_.insert(session);
             
             // 클라이언트로부터 비동기 수신 시작
-            if(this->connects_.find(session) != this->connects_.end()) 
-                session->Receive();
+            if(this->connects_.find(sessionId) != this->connects_.end()) 
+                connects_[sessionId]->Receive();
 
             // 다시 연결 걸기
             PostAccept();
@@ -255,13 +275,12 @@ void Iocp::WorkerThread() {
 }
 
 void Iocp::Cleanup() {
-    
+
     messageManager.RegistUnrock();
 
     _thread = false;
     _accept = false;
     // 모든 세션 삭제
-    for (auto session : connects_) delete session;
     connects_.clear();
 
     // 리소스 정리
@@ -273,10 +292,10 @@ void Iocp::Cleanup() {
 
 
 // 수신 완료 후 처리
-void Iocp::OnReceiveCompletion(Session * session , const char * buffer , DWORD bytesTransferred) {
+void Iocp::OnReceiveCompletion(uint32_t & sessionId , const char * buffer , DWORD bytesTransferred) {
 
     try{
-        ReceiveProcess(session , buffer , bytesTransferred);
+        ReceiveProcess(sessionId , buffer , bytesTransferred);
     }catch(const std::exception& e){
         std::cerr<<"ReceiveProcess 에러 : "<<e.what()<<"\n";
     }
@@ -290,7 +309,7 @@ void Iocp::OnSendCompletion(){
     }
 };
 
-void Iocp::SetReceiveProcess(std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> f){
+void Iocp::SetReceiveProcess(std::function<void(uint32_t & sessionId , const char * buffer , DWORD bytesTransferred)> f){
     ReceiveProcess = f;
 }
 

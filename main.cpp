@@ -1,6 +1,5 @@
 
 #include <iostream>
-
 #include "iocpServer.h"
 
 // #pragma comment(lib, "ws2_32.lib")
@@ -32,7 +31,7 @@ int main(){
     iocp.RpcRegist(new Command() , f);
 
 
-    iocp.SetReceiveProcess([&](Session * session ,const char * buffer , DWORD bytesTransferred){
+    iocp.SetReceiveProcess([&](uint32_t & sessionId ,const char * buffer , DWORD bytesTransferred){
         // std::cout<<"RECEIVE!!"<<" ";
         
         // InputMemoryStream inputStream;

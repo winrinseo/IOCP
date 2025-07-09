@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <string>
 #include <functional>
+#include <mutex>
 
 #include "outputMemoryStream.h"
 #include "inputMemoryStream.h"
@@ -28,23 +29,26 @@ public:
     virtual void Cleanup();                       // 정리 작업
 
     void SetReceiveProcess(
-        std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> f);   // 수신 완료 작업 설정
+        std::function<void(uint32_t & sessionId , const char * buffer , DWORD bytesTransferred)> f);   // 수신 완료 작업 설정
     void SetSendProcess(
         std::function<void()> f);       // 송신 완료 작업 설정
 
     void RpcRegist(BaseMessage* reg , std::function<void(BaseMessage*)> f); // 원격 호출 함수 등록
 
 protected:
-    std::string ip_;                                     // 연결 요청 IP
+    std::string ip_;                                    // 연결 요청 IP
     int port_;                                          // 사용할 포트 번호
     SOCKET listenSocket_;                               // 리슨 소켓
     HANDLE iocpHandle_;                                 // IOCP 핸들
     std::vector<std::thread> workerThreads_;            // 워커 쓰레드 목록
-    std::unordered_set<Session*> connects_;             // 연결된 개체 목록
+
+    std::mutex connectMutex;                            // 클라이언트 id 부여의 동기화
+    uint32_t connectCount;                              // 연결된 객체 수 (클라이언트 id 부여에 사용)
+    std::unordered_map<uint32_t, std::unique_ptr<Session>> connects_;   // 연결된 개체 목록
 
     LPFN_ACCEPTEX pAcceptEx;                            //AcceptEx 함수 포인터
 
-    std::function<void(Session * session , const char * buffer , DWORD bytesTransferred)> 
+    std::function<void(uint32_t & sessionId , const char * buffer , DWORD bytesTransferred)> 
                             ReceiveProcess;              // 수신 완료 시 수행 할 작업
 
     std::function<void()> SendProcess;                   // 송신 완료 시 수행 할 작업
@@ -67,7 +71,7 @@ protected:
 
 
 private:
-    void OnReceiveCompletion(Session * session , const char * buffer , DWORD bytesTransferred); // 데이터 수신 완료 처리
+    void OnReceiveCompletion(uint32_t & sessionId , const char * buffer , DWORD bytesTransferred); // 데이터 수신 완료 처리
     void OnSendCompletion();    // 데이터 송신 완료 처리
 
 };

@@ -60,8 +60,8 @@ bool IocpClient::Connect(SERVER server , std::string ip , int port){ // 연결�
         }
     }
 
+    connects_[GAME] = std::make_unique<ServerSession>(server_list[server]->GetSocket()); //실제로 연결된 서버에 등록
     server_list[server]->Receive();     //서버 메세지 수신 준비
-    connects_.insert(server_list[server]); //실제로 연결된 서버에 등록
 
     std::cout << "서버에 연결됨.\n";
     return true;
