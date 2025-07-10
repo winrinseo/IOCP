@@ -54,5 +54,19 @@ BaseMessage * MessageManager::Dispatch(const char* buffer, uint32_t size) const 
 
     delete inMemoryStream;
     return msg;
+
 }
 
+
+void MessageManager::Serialize(BaseMessage * msg , char ** output_buffer, int * output_length){
+
+    OutputMemoryStream * outMemoryStream = new OutputMemoryStream();
+    // 버퍼 준비
+    outMemoryStream->Prepare();
+    // 직렬화
+    outMemoryStream->SerializeMessage(msg);
+
+    // 직렬화 정보 반환
+    *output_buffer = (char *) outMemoryStream->GetBuffer();
+    *output_length = outMemoryStream->GetLength();
+}

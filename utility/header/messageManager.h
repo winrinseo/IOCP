@@ -31,4 +31,6 @@ public:
     void regist(BaseMessage * reg , std::function<void(BaseMessage *)> f); //원격 프로시저 등록
     void CallRPC(BaseMessage * msg);                                //원격 프로시저 호출
     BaseMessage * Dispatch(const char* buffer, uint32_t size) const; //등록된 메세지 중 일치하는 메세지 타입으로 변경 (멤버 변수는 아무것도 건드리면 안됨)
+
+    void Serialize(BaseMessage * msg , char ** output_buffer, int * output_length);
 };

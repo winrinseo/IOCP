@@ -1,3 +1,4 @@
+
 #include "iocp.h"
 #include <iostream>
 
@@ -295,6 +296,34 @@ void Iocp::WorkerThread() {
         delete context;
     }
 }
+
+// 해당 세션에 메세지 전송
+bool Iocp::Send(const uint32_t & session_id , BaseMessage * msg){
+    // 메세지 매니저에 직렬화 요청
+    char * buffer = nullptr;
+    int length = -1;
+
+    messageManager.Serialize(msg, &buffer , &length);
+
+    if(buffer == nullptr || length == -1)
+        return false;
+    
+    connects_[session_id]->Send(buffer , length);
+    return true;
+}
+
+// shared_ptr 대응 인터페이스
+bool Iocp::Send(const uint32_t & session_id , std::shared_ptr<BaseMessage> msg){
+    bool ret = Send(session_id , msg.get());
+    return ret;
+}
+
+// unique_ptr 대응 인터페이스
+bool Iocp::Send(const uint32_t & session_id , std::unique_ptr<BaseMessage> msg){
+    bool ret = Send(session_id , msg.get());
+    return ret;
+}
+
 
 void Iocp::Cleanup() {
 

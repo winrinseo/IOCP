@@ -17,7 +17,7 @@ int main(){
     IocpClient client;
 
     OutputMemoryStream outputStream;
-    Command * cmd = new Command();
+    std::shared_ptr<Command> cmd = std::make_shared<Command>();
     cmd->num = 4;
     Player m; m.mId = 168; m.mName = "winrinseo"; m.mScore = {6,10,11};
     Player p; p.mId = 1; p.mName = "우린"; p.mScore = {4,5};
@@ -26,8 +26,6 @@ int main(){
     cmd->cmdDeck.push_back(&p);
     cmd->cmdDeck.push_back(&p1);
 
-    outputStream.Prepare();
-    outputStream.SerializeMessage((BaseMessage*)cmd);
     
     client.SetReceiveProcess([&](uint32_t & sessionId , const char * buffer , DWORD bytesTransferred){
         // cout<<"에코 완료 ! "<<string(buffer , bytesTransferred)<<"\n";
@@ -54,7 +52,8 @@ int main(){
         if (msg == "exit")
             break;
 
-        client.getServer(GAME)->Send(outputStream.GetBuffer() , outputStream.GetLength());
+        client.Send(GAME , cmd);
+        
 
         // if (!client.SendToServer(msg)) {
         //     break;

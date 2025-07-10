@@ -7,6 +7,7 @@
 #include <vector>
 #include <stdexcept>
 #include <cstdint>
+#include <memory>
 #define OffsetOf(c,mv) ((size_t)& static_cast<c*>(nullptr)->mv)
 
 #define REFLECTABLE(CLASS, ...) \

@@ -17,6 +17,14 @@
 #define LISTENSOCKET_ID 987654321
 
 
+// 기본 세션 아이디디
+typedef enum _primary_id {
+    GAME, 
+    VOICE, 
+    CHAT, 
+    end
+} SERVER;
+
 // 세션은 연결된 개체가 무엇인지에 따라 구분해 부를 수 있어야함
 typedef class Session ServerSession , ClientSession;
 
@@ -36,6 +44,11 @@ public:
         std::function<void()> f);       // 송신 완료 작업 설정
 
     void RpcRegist(BaseMessage* reg , std::function<void(BaseMessage*)> f); // 원격 호출 함수 등록
+
+    // 포인터 종류에 따른 인터페이스
+    bool Send(const uint32_t & session_id , BaseMessage * msg);  // 해당 세션에 메세지 송신
+    bool Send(const uint32_t & session_id , std::shared_ptr<BaseMessage> msg);  // 해당 세션에 메세지 송신
+    bool Send(const uint32_t & session_id , std::unique_ptr<BaseMessage> msg);  // 해당 세션에 메세지 송신
 
 protected:
     std::string ip_;                                    // 연결 요청 IP

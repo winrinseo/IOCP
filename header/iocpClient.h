@@ -2,8 +2,6 @@
 
 #include "iocp.h"
 
-// 연결할 서버의 종류 end는 서버의 수를 나타냄
-typedef enum _server{GAME , VOICE , CHAT , end} SERVER;
 
 // IOCP 기반 서버를 담당하는 클래스
 class IocpClient : public Iocp {
