@@ -8,10 +8,11 @@ void MemoryStream::DispatchVectorSerialization(void* data) {
     SerializeVector<T>(*vecPtr);
 }
 
-// 작업할 메모리 준비
+// 직렬화 메모리 할당
 void MemoryStream::Prepare(){
+    // 이 객체가 직접 할당한 메모리만 직접 제거함
     if(this->buffer != nullptr)
-        MemoryFree();
+        MemoryFree(); 
     this->buffer = nullptr;
     this->mCapacity = 0;
     this->mHead = 0;
@@ -20,8 +21,7 @@ void MemoryStream::Prepare(){
 
 // 역직렬화할 메모리 할당
 void MemoryStream::Prepare(char * buffer , uint32_t size){
-    if(this->buffer != nullptr)
-        MemoryFree();
+    // 외부에서 할당된 메모리를 읽는 것이기 때문에 메모리를 제거하지 않는다.
     this->buffer = buffer;
     this->mCapacity = size;
     this->mHead = 0;
@@ -29,7 +29,7 @@ void MemoryStream::Prepare(char * buffer , uint32_t size){
 
 // 할당된 메모리 해제
 void MemoryStream::MemoryFree(){
-    std::free(buffer);
+    std::free(this->buffer);
     this->buffer = nullptr;
     this->mCapacity = 0;
     this->mHead = -1;

@@ -12,7 +12,8 @@
 // IOCP 기반 서버를 담당하는 클래스
 class IocpServer : public Iocp {
 public:
-    IocpServer(int port);
+    IocpServer(uint16_t port);
+    IocpServer(uint16_t port , uint32_t thread_size);
     ~IocpServer();
 
     bool Start() override;                           // 서버 시작

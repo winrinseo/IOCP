@@ -2,10 +2,25 @@
 #include "iocp.h"
 #include <iostream>
 
-Iocp::Iocp(int port) : 
- port_(port), listenSocket_(INVALID_SOCKET), iocpHandle_(NULL) {}
+Iocp::Iocp(uint16_t port) : 
+    port_(port), 
+    WORKER_COUNT(0) ,
+    listenSocket_(INVALID_SOCKET), 
+    iocpHandle_(NULL) {}
 
- Iocp::Iocp() {}
+ Iocp::Iocp(uint16_t port , uint32_t thread_size) : 
+    port_(port), 
+    WORKER_COUNT(thread_size) , 
+    messageManager(thread_size),
+    listenSocket_(INVALID_SOCKET), 
+    iocpHandle_(NULL) {}
+
+ Iocp::Iocp(uint32_t thread_size) :
+    messageManager(thread_size),
+    WORKER_COUNT(thread_size) {}
+
+ Iocp::Iocp() :
+    WORKER_COUNT(0) {}
 
 Iocp::~Iocp() {
     Cleanup();
@@ -26,6 +41,21 @@ bool Iocp::InitWinsock() {
 bool Iocp::CreateIocp() {
     // IOCP 포트 생성
     iocpHandle_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+
+    if(WORKER_COUNT == 0){
+        uint32_t num_cores = std::thread::hardware_concurrency();
+        if(num_cores == 0) {
+            std::cout<<"CPU 코어 수를 감지할 수 없습니다. 기본값 4를 사용합니다."<<std::endl;
+            num_cores = 4;
+        }else{
+            std::cout<<"시스템 CPU 코어 수 : "<<num_cores<<std::endl;
+        }
+
+        WORKER_COUNT = num_cores * 2 + 1;
+    }
+
+    std::cout<<"생성할 스레드 개수 : "<<WORKER_COUNT<<std::endl;
+
     return iocpHandle_ != NULL;
 }
 

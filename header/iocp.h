@@ -29,7 +29,9 @@ typedef class Session ServerSession , ClientSession;
 // IOCP 인터페이스
 class Iocp {
 public:
-    Iocp(int port); // 서버용 생성자
+    Iocp(uint16_t port); // 서버용 생성자
+    Iocp(uint16_t port , uint32_t thread_size); 
+    Iocp(uint32_t thread_size); 
     Iocp(); // 클라용 생성자
     ~Iocp();
 
@@ -74,7 +76,7 @@ protected:
     bool _thread;
     bool _accept;
 
-    static const int WORKER_COUNT = 4;                  // 워커 쓰레드 개수
+    int WORKER_COUNT;                  // 워커 쓰레드 개수
 
     // 내부 동작 함수들
     virtual bool InitWinsock();                   // WinSock 초기화

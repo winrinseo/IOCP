@@ -7,6 +7,7 @@
 class IocpClient : public Iocp {
 public:
     IocpClient();
+    IocpClient(uint32_t thread_size);
     ~IocpClient();
     bool Start() override;
     bool Connect(SERVER server , std::string ip , int port);  // 서버 연결

@@ -1,7 +1,8 @@
 #include "iocpServer.h"
 #include <iostream>
 
-IocpServer::IocpServer(int port) : Iocp(port) {}
+IocpServer::IocpServer(uint16_t port) : Iocp(port) {}
+IocpServer::IocpServer(uint16_t port , uint32_t thread_size) : Iocp(port , thread_size) {}
 
 IocpServer::~IocpServer() {
     Cleanup();
@@ -49,7 +50,7 @@ bool IocpServer::Start() {
     std::cout << "[디버그] AcceptEx 포인터: " << (void*)pAcceptEx << "\n";
 
     // 클라이언트 accept 처리 (미리 많이 예약해놓음)
-    for(int i = 0;i<WORKER_COUNT * 2;i++)
+    for(int i = 0;i<WORKER_COUNT; i++)
         PostAccept();
     
     return true;

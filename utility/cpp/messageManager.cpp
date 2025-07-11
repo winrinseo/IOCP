@@ -1,7 +1,7 @@
 #include "messageManager.h"
 
 
-MessageManager::MessageManager() : inMemoryStreamPool(0) , outMemoryStreamPool(0){
+MessageManager::MessageManager() : inMemoryStreamPool(10) , outMemoryStreamPool(10){
     registRock = false;
 }
 

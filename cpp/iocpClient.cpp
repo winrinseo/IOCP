@@ -2,6 +2,7 @@
 
 
 IocpClient::IocpClient(){}
+IocpClient::IocpClient(uint32_t thread_size) : Iocp(thread_size){}
 
 IocpClient::~IocpClient(){
     Cleanup();
