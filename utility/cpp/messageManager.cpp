@@ -1,7 +1,14 @@
 #include "messageManager.h"
 
 
-MessageManager::MessageManager(){
+MessageManager::MessageManager() : inMemoryStreamPool(0) , outMemoryStreamPool(0){
+    registRock = false;
+}
+
+MessageManager::MessageManager(uint32_t pool_size) : 
+    inMemoryStreamPool(pool_size), 
+    outMemoryStreamPool(pool_size){
+
     registRock = false;
 }
 
@@ -33,9 +40,12 @@ void MessageManager::CallRPC(BaseMessage * msg){
 }
 
 // 받은 정보를 등록된 메세지로 변환해 반환한다.
-BaseMessage * MessageManager::Dispatch(const char* buffer, uint32_t size) const {
+BaseMessage * MessageManager::Dispatch(const char* buffer, uint32_t size) {
 
-    InputMemoryStream * inMemoryStream = new InputMemoryStream();
+    // 객체 획득 (ObjectPool 클래스 내부에서 동기화 처리 되어있기 때문에 바로 가져와도 됨)
+    ObjectPool<InputMemoryStream>::ObjectPtr 
+        inMemoryStream = inMemoryStreamPool.get();
+        
     inMemoryStream->Prepare((char *)buffer , size);
     // 메세지 id 획득
     uint8_t mId = -1;
@@ -52,7 +62,6 @@ BaseMessage * MessageManager::Dispatch(const char* buffer, uint32_t size) const 
     // 메세지 역직렬화
     inMemoryStream->SerializeMessage(msg);
 
-    delete inMemoryStream;
     return msg;
 
 }
@@ -60,7 +69,8 @@ BaseMessage * MessageManager::Dispatch(const char* buffer, uint32_t size) const 
 
 void MessageManager::Serialize(BaseMessage * msg , char ** output_buffer, int * output_length){
 
-    OutputMemoryStream * outMemoryStream = new OutputMemoryStream();
+    ObjectPool<OutputMemoryStream>::ObjectPtr 
+        outMemoryStream = outMemoryStreamPool.get();
     // 버퍼 준비
     outMemoryStream->Prepare();
     // 직렬화

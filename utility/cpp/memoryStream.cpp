@@ -10,6 +10,8 @@ void MemoryStream::DispatchVectorSerialization(void* data) {
 
 // 작업할 메모리 준비
 void MemoryStream::Prepare(){
+    if(this->buffer != nullptr)
+        MemoryFree();
     this->buffer = nullptr;
     this->mCapacity = 0;
     this->mHead = 0;
@@ -18,6 +20,8 @@ void MemoryStream::Prepare(){
 
 // 역직렬화할 메모리 할당
 void MemoryStream::Prepare(char * buffer , uint32_t size){
+    if(this->buffer != nullptr)
+        MemoryFree();
     this->buffer = buffer;
     this->mCapacity = size;
     this->mHead = 0;

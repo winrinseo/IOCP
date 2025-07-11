@@ -11,10 +11,11 @@
 #include "baseMessage.h"
 
 
-//벡터 타입 매핑 구조체
+// 벡터 타입 매핑 구조체
 template<Type T>
 struct TypeMap;
 
+// 템플릿 특수화
 template<>
 struct TypeMap<Type::Int8> { using type = uint8_t; };
 

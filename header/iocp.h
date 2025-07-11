@@ -8,8 +8,6 @@
 #include <functional>
 #include <mutex>
 
-#include "outputMemoryStream.h"
-#include "inputMemoryStream.h"
 #include "messageManager.h"
 
 #include "session.h"
