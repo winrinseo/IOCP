@@ -13,7 +13,7 @@ public:
     bool Connect(SERVER server , std::string ip , int port);  // 서버 연결
     
     ServerSession * getServer(SERVER server);
-    private:
+private:
     // 클라이언트가 여러가지 서버에 연결할 수 있도록 함
     std::vector<ServerSession *> server_list;       //연결된 서버들
 };

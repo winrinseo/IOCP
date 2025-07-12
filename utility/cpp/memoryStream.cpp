@@ -1,11 +1,29 @@
 #include "memoryStream.h"
 
-//벡터 템플릿 설정
+// 벡터 템플릿 설정
 template<Type E>
-void MemoryStream::DispatchVectorSerialization(void* data) {
+void MemoryStream::DispatchVectorSerialization(void* data , const MemberVariable& mv) {
     using T = typename TypeMap<E>::type;
     auto* vecPtr = reinterpret_cast<std::vector<T>*>(data);
     SerializeVector<T>(*vecPtr);
+}
+
+// 템플릿 특수화화
+template<>
+void MemoryStream::DispatchVectorSerialization<Type::Class>(void* data , const MemberVariable& mv){
+    auto* vecPtr = reinterpret_cast<std::vector<BaseClass*>*>(data);
+    // 벡터의 타입이 클래스 포인터형일 경우
+    if(IsInput()){
+        // 역직렬화에서는 정보를 담을 객체를 준비해주는 과정이 필요하다.
+        uint8_t size = 0;
+        Serialize(&size, sizeof(size));
+        vecPtr->resize(size);
+        // 각 원소에 객체를 생성해준다.
+        for(int i = 0;i<size;i++)
+            (*vecPtr)[i] = mv.CreateInstance();
+        
+    }
+    SerializeVector<BaseClass*>(*vecPtr);
 }
 
 // 직렬화 메모리 할당
@@ -87,16 +105,7 @@ void MemoryStream::SerializeString(std::string& str) {
 
 }
 
-// 메세지 하나를 직렬화 or 역직렬화
-void MemoryStream::SerializeMessage(BaseMessage * data){
-    if(!IsInput()){
-        // 출력일때만 메세지 Id를 메모리에 기록
-        uint8_t mId = data->GetId();
-        Serialize(&mId,sizeof(uint8_t));
-        //입력일 때는 외부에서 먼저 읽어야됨
-    }
-    Serialize((BaseClass*)data);
-}
+
 
 
 // 클래스 하나를 직렬화 or 역직렬화
@@ -129,29 +138,16 @@ void MemoryStream::Serialize(BaseClass * data){
             case Type::Vector:
                 
                 switch (mv.GetElementType()){
-                    case Type::Int8: DispatchVectorSerialization<Type::Int8>(mvData); break;
-                    case Type::Int16: DispatchVectorSerialization<Type::Int16>(mvData); break;
-                    case Type::Int32: DispatchVectorSerialization<Type::Int32>(mvData); break;
-                    case Type::String: DispatchVectorSerialization<Type::String>(mvData); break;
-                    case Type::Float: DispatchVectorSerialization<Type::Float>(mvData); break;
+                    case Type::Int8: DispatchVectorSerialization<Type::Int8>(mvData,mv); break;
+                    case Type::Int16: DispatchVectorSerialization<Type::Int16>(mvData,mv); break;
+                    case Type::Int32: DispatchVectorSerialization<Type::Int32>(mvData,mv); break;
+                    case Type::String: DispatchVectorSerialization<Type::String>(mvData,mv); break;
+                    case Type::Float: DispatchVectorSerialization<Type::Float>(mvData,mv); break;
 
                     default: // 사용자 정의 클래스
-                    {
-                        auto* vecPtr = reinterpret_cast<std::vector<BaseClass*>*>(mvData);
-                        // 역직렬화에서는 정보를 담을 객체를 준비해주는 과정이 필요하다.
-                        if(IsInput()){
-                            //벡터의 타입이 클래스 포인터형일 경우
-                            uint8_t size = 0;
-                            Serialize(&size, sizeof(size));
-                            vecPtr->resize(size);
-                            // 각 원소에 객체를 생성해준다.
-                            for(int i = 0;i<size;i++){
-                                (*vecPtr)[i] = mv.CreateInstance();
-                            }
-                        }
-                        SerializeVector<BaseClass*>(*vecPtr);
+                        DispatchVectorSerialization<Type::Class>(mvData,mv);
                         break;
-                    }
+                    
                 }
                 
                 break;
@@ -172,4 +168,15 @@ void MemoryStream::Serialize(BaseClass * data){
         }
     }
     
+}
+
+// 메세지 하나를 직렬화 or 역직렬화
+void MemoryStream::SerializeMessage(BaseMessage * data){
+    if(!IsInput()){
+        // 출력일때만 메세지 Id를 메모리에 기록
+        uint8_t mId = data->GetId();
+        Serialize(&mId,sizeof(uint8_t));
+        //입력일 때는 외부에서 먼저 읽어야됨
+    }
+    Serialize((BaseClass*)data);
 }

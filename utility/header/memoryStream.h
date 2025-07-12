@@ -48,7 +48,7 @@ public:
     void SerializeString(std::string& str);
 
     template<Type E>
-    void DispatchVectorSerialization(void* data);
+    void DispatchVectorSerialization(void* data , const MemberVariable & mv);
 
     void SerializeMessage(BaseMessage * data);                         // 준비된 메세지를 직렬화 or 역직렬화
     void Serialize(BaseClass * data);                           // 클래스 하나를 직렬화 or 역직렬화
