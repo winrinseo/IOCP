@@ -8,6 +8,7 @@
 #include <memory>
 #include <mutex>
 #include <functional>
+#include <condition_variable>
 #include <stdexcept>
 
 template <typename T>
@@ -41,6 +42,7 @@ private:
 
     std::function<void(T *)> preRelease;        // 객체 회수 전에 필요한 동작을 정의
     std::mutex m_mutex;                         // 스레드 동기화
+    std::condition_variable cv;                 // 대기를 위한 상태 변수
     std::vector<std::unique_ptr<T>> m_pool;     // 풀이 소유한 모든 객체
     std::vector<T*> m_available;                // 대여 가능한 객체
 
@@ -55,10 +57,11 @@ ObjectPool<T>::ObjectPool(uint32_t size){
 template<typename T>
 typename ObjectPool<T>::ObjectPtr ObjectPool<T>::get(){
 
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::unique_lock<std::mutex> lock(m_mutex);
 
     if(m_available.empty()){
-
+        // 객체가 회수 될 때까지 대기
+        cv.wait(lock , [this]{return !m_available.empty();});
     }
 
     T * obj = m_available.back();
@@ -74,6 +77,7 @@ template<typename T>
 void ObjectPool<T>::release(T * ptr){
     std::lock_guard<std::mutex> lock(m_mutex);
     m_available.push_back(ptr);
+    cv.notify_one();
 }
 
 template<typename T>
