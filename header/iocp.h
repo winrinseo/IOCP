@@ -38,6 +38,8 @@ public:
     virtual bool Start();                         // 시작
     virtual void Cleanup();                       // 정리 작업
 
+    uint32_t GetSessionId();
+
     void SetReceiveProcess(
         std::function<void(uint32_t & sessionId , const char * buffer , DWORD bytesTransferred)> f);   // 수신 완료 작업 설정
     void SetSendProcess(
@@ -89,7 +91,11 @@ protected:
 
 
 private:
+
+    void setPrimaryProceser();
     void OnReceiveCompletion(uint32_t & sessionId , const char * buffer , DWORD bytesTransferred); // 데이터 수신 완료 처리
     void OnSendCompletion();    // 데이터 송신 완료 처리
+    
 
+    uint32_t sessionId;
 };

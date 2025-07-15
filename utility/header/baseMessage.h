@@ -3,12 +3,48 @@
 */
 #pragma once
 #include "baseClass.h"
+
+#define MESSAGE_IDENTIFICATION(inCode , inClass)\
+    static constexpr uint8_t mId = inCode;\
+    int GetId() const {return mId;}\
+    BaseMessage * Create() const { return new inClass(); }
+
+
 class BaseMessage : public BaseClass{
 public:
     
     virtual int GetId() const = 0;
     virtual BaseMessage * Create() const = 0;
 };
+
+/* 필수 메세지 */
+class Hello : public BaseMessage{
+public:
+    uint32_t sessionId;
+
+    MESSAGE_IDENTIFICATION(1,Hello)
+    REFLECTABLE(Hello,
+        MemberVariable("sessionId", Type::Int32, OffsetOf(Hello, sessionId)),
+    )
+
+};
+
+
+class IntoNetworkGroup : public BaseMessage{
+public:
+    uint32_t sessionId;
+    uint32_t networkId;
+
+    MESSAGE_IDENTIFICATION(2,IntoNetworkGroup)
+    REFLECTABLE(IntoNetworkGroup,
+        MemberVariable("sessionId", Type::Int32, OffsetOf(IntoNetworkGroup, sessionId)),
+        MemberVariable("networkId", Type::Int32, OffsetOf(IntoNetworkGroup, networkId))
+    )
+
+};
+
+
+/* 필수 메세지 */
 
 //Sample 메세지
 class Command : public BaseMessage{
@@ -18,13 +54,12 @@ public:
     기본적으로 베이스 클래스를 상속받지만 클라이언트와 통신하기 위한 몇가지 함수가 추가되어있음.
 
 */
-    static constexpr uint8_t mId = 1; // 스태틱은 offset이 튀어서 따로 처리해야함
     uint32_t num;
     Player * me;
     std::vector<Player*> cmdDeck; // 클래스는 항상 포인터형으로 선언
 
-    int GetId() const {return mId;}
-    BaseMessage * Create() const { return new Command(); }
+    MESSAGE_IDENTIFICATION(20,Command)
+
     REFLECTABLE(Command,
         MemberVariable("num", Type::Int32, OffsetOf(Command, num)),
         // 클래스 포인터 타입일 경우에는 반환 함수를 꼭 추가해야함

@@ -44,14 +44,16 @@ int main(){
         return 1;
     }
 
+    
     while (true) {
         std::string msg;
         std::cout << "> ";
         std::getline(std::cin, msg);
-
+        
         if (msg == "exit")
-            break;
-
+        break;
+        
+        std::cout<<"sessionId : "<<client.GetSessionId()<<"\n";
         client.Send(GAME , cmd);
         
 

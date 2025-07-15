@@ -16,6 +16,7 @@ bool IocpClient::Start() {
     // 서버 동작 중엔 RPC 등록 불가능
     messageManager.RegistRock();
 
+
     _thread = true;
     _accept = true;
 

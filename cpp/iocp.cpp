@@ -26,6 +26,10 @@ Iocp::~Iocp() {
     Cleanup();
 }
 
+uint32_t Iocp::GetSessionId(){
+    return sessionId;
+}
+
 void Iocp::RpcRegist(BaseMessage* reg , std::function<void(BaseMessage*)> f){
     messageManager.regist(reg , f);
 }
@@ -41,7 +45,8 @@ bool Iocp::InitWinsock() {
 bool Iocp::CreateIocp() {
     // IOCP 포트 생성
     iocpHandle_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
-
+    
+    setPrimaryProceser();
     if(WORKER_COUNT == 0){
         uint32_t num_cores = std::thread::hardware_concurrency();
         if(num_cores == 0) {
@@ -307,8 +312,15 @@ void Iocp::WorkerThread() {
             if(connects_.find(sessionId) != connects_.end()) 
                 connects_[sessionId]->Receive();
 
+
             // 다시 연결 걸기
             PostAccept();
+
+
+            // 연결 완료 통보해주기
+            std::shared_ptr<Hello> hello = std::make_shared<Hello>();
+            hello->sessionId = sessionId;
+            Send(sessionId , hello);
 
         } else if(context->operation == OperationType::CONNECT){
             // 소켓의 컨텍스트를 업데이트
@@ -389,6 +401,13 @@ void Iocp::OnSendCompletion(){
         std::cerr<<"ReceiveProcess 에러 : "<<e.what()<<"\n";
     }
 };
+
+void Iocp::setPrimaryProceser(){
+    messageManager.regist(new Hello , [this](BaseMessage * msg){
+        Hello * hello = (Hello*) msg;
+        this->sessionId = hello->sessionId;
+    });
+}
 
 void Iocp::SetReceiveProcess(std::function<void(uint32_t & sessionKey , const char * buffer , DWORD bytesTransferred)> f){
     ReceiveProcess = f;
