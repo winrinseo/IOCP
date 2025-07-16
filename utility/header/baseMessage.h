@@ -3,6 +3,7 @@
 */
 #pragma once
 #include "baseClass.h"
+#include "gameObject.h"
 
 #define MESSAGE_IDENTIFICATION(inCode , inClass)\
     static constexpr uint8_t mId = inCode;\
@@ -43,6 +44,23 @@ public:
 
 };
 
+class ReplicationData : public BaseMessage{
+public:
+    uint32_t sessionId;
+    uint32_t networkGroup;
+    std::vector<GameObjectWrapper*> objList;
+
+    MESSAGE_IDENTIFICATION(3,ReplicationData)
+    REFLECTABLE(ReplicationData,
+        MemberVariable("sessionId", Type::Int32, OffsetOf(ReplicationData, sessionId)),
+        MemberVariable("networkGroup", Type::Int32, OffsetOf(ReplicationData, networkGroup)),
+        MemberVariable("objList", Type::Vector, OffsetOf(ReplicationData, objList) , Type::Class , [this](BaseClass* cls){
+            return new GameObjectWrapper();
+        }),
+    )
+
+};
+
 
 /* 필수 메세지 */
 
@@ -63,7 +81,7 @@ public:
     REFLECTABLE(Command,
         MemberVariable("num", Type::Int32, OffsetOf(Command, num)),
         // 클래스 포인터 타입일 경우에는 반환 함수를 꼭 추가해야함
-        MemberVariable("me", Type::Class, OffsetOf(Command, me) , Type::Class , [](){return new Player();}),
-        MemberVariable("cmdDeck", Type::Vector, OffsetOf(Command, cmdDeck) , Type::Class , [](){return new Player();})
+        MemberVariable("me", Type::Class, OffsetOf(Command, me) , Type::Class , [](BaseClass * cls){return new Player();}),
+        MemberVariable("cmdDeck", Type::Vector, OffsetOf(Command, cmdDeck) , Type::Class , [](BaseClass * cls){return new Player();})
     )
 };

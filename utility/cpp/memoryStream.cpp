@@ -20,7 +20,7 @@ void MemoryStream::DispatchVectorSerialization<Type::Class>(void* data , const M
         vecPtr->resize(size);
         // 각 원소에 객체를 생성해준다.
         for(int i = 0;i<size;i++)
-            (*vecPtr)[i] = mv.CreateInstance();
+            (*vecPtr)[i] = mv.CreateInstance(nullptr);
         
     }
     SerializeVector<BaseClass*>(*vecPtr);
@@ -159,8 +159,10 @@ void MemoryStream::Serialize(BaseClass * data){
                 BaseClass** classPtr = reinterpret_cast<BaseClass**>(mvData);
                 // 역직렬화에서는 정보를 담을 객체를 준비해주는 과정이 필요하다.
                 if(IsInput()){
-                    // 타입이 클래스 포인터형일 경우
-                    *classPtr = mv.CreateInstance();
+                    // 타입이 클래스 포인터형일 경우 (GameObject의 경우 wrapper의 주소를 보내줘야함)
+                    // CreateInstance가 static이라 처음 생성될 때 생성할 오브젝트가 정해져버림..
+                    // 그래서 현재 wrapper 주소를 보내주고 여기서 objectId를 확인하도록 함
+                    *classPtr = mv.CreateInstance(data);
                 }
                 Serialize(*classPtr);
                 break;

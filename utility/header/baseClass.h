@@ -38,15 +38,15 @@ class BaseClass;
 class MemberVariable {
 public:
     MemberVariable(const char* inName, Type inType, uint32_t inOffset, 
-        Type elementType = Type::Int32 , std::function<BaseClass*()> fac = nullptr) 
+        Type elementType = Type::Int32 , std::function<BaseClass*(BaseClass*)> fac = nullptr) 
         : mName(inName), mType(inType), mOffset(inOffset), mElementType(elementType), mFactory(fac) {}
 
     Type GetType() const { return mType; }
     Type GetElementType() const { return mElementType; }
     uint32_t GetOffset() const { return mOffset; }
-    BaseClass* CreateInstance() const { 
+    BaseClass* CreateInstance(BaseClass * c) const { 
         // 클래스 용도일 땐 factory로, 아니면 nullptr
-        return mFactory ? mFactory() : nullptr; 
+        return mFactory ? mFactory(c) : nullptr; 
     }
 
 private:
@@ -55,7 +55,7 @@ private:
     uint32_t mOffset;
 
     Type mElementType;  // 템플릿 타입
-    std::function<BaseClass*()> mFactory; // 재귀 반환 함수, 본인의 타입 객체를 반환함 (클래스 타입일 때만 사용)
+    std::function<BaseClass*(BaseClass *)> mFactory; // 재귀 반환 함수, 본인의 타입 객체를 반환함 (클래스 타입일 때만 사용)
 };
 
 // 멤버 변수 리스트

@@ -403,9 +403,32 @@ void Iocp::OnSendCompletion(){
 };
 
 void Iocp::setPrimaryProceser(){
-    messageManager.regist(new Hello , [this](BaseMessage * msg){
+    messageManager.regist(new Hello() , [this](BaseMessage * msg){
         Hello * hello = (Hello*) msg;
         this->sessionId = hello->sessionId;
+    });
+
+    messageManager.regist(new IntoNetworkGroup() , [this](BaseMessage * msg){
+        
+    });
+
+    messageManager.regist(new ReplicationData() , [this](BaseMessage * msg){
+        ReplicationData * objectData = (ReplicationData*) msg;
+        
+
+        std::cout<<"sessionId : "<<objectData->sessionId<<" networkGroup : "<<objectData->networkGroup<<"\n";
+        GameObjectWrapper * w = objectData->objList[0];
+        GameObjectWrapper * w2 = objectData->objList[1];
+        SampleObject * s = (SampleObject *) objectData->objList[0]->obj;
+        SampleObject2 * s2 = (SampleObject2 *) objectData->objList[1]->obj;
+
+        std::cout<<objectData->objList.size()<<" "<<"\n";
+        std::cout<<w->networkId<<" "<<w->objectId<<" "<<"\n";
+        std::cout<<s->hp<<" "<<s->mp<<" "<<s->x<<" "<<s->y<<" "<<s->z<<"\n";
+
+        std::cout<<w2->networkId<<" "<<w2->objectId<<" "<<"\n";
+        std::cout<<s2->x<<" "<<s2->y<<" "<<s2->z<<"\n";
+
     });
 }
 
