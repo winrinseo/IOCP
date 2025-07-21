@@ -12,7 +12,7 @@ IocpClient::~IocpClient(){
 bool IocpClient::Start() {
     if (!InitWinsock()) std::cerr << "WSAStartup 실패\n";
     if (!CreateIocp()) std::cout<<"iocp 실패"<<"\n";
-
+    SetMessageManager();
     // 서버 동작 중엔 RPC 등록 불가능
     messageManager.RegistRock();
 

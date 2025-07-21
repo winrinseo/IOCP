@@ -4,15 +4,22 @@
     GameObjectWrapper를 사용해 보완
 */
 #include <unordered_map>
+#include <memory> // unique_ptr를 위해 추가
 #include "baseClass.h"
 
 class GameObjectRegistry;
 class GameObject;
 
+// 오브젝트에 필요한 가상함수들을 정의
 #define OBJECT_IDENTIFICATION(inCode,inClass)\
     static constexpr uint32_t objectId = inCode;\
-    uint32_t GetObjectId() override {return inCode;}\
-    GameObject * CreateInstance() override {return new inClass();}
+    uint32_t GetObjectId() const override {return inCode;}\
+    GameObject * CreateInstance() override {return new inClass();}\
+    std::unique_ptr<GameObject> clone() const override { return std::make_unique<inClass>(*this); }\
+    void update(const GameObject& source) override {\
+        if (GetObjectId() != source.GetObjectId()) { return; }\
+        *this = static_cast<const inClass&>(source);\
+    }
     
 
 
@@ -26,8 +33,10 @@ class GameObject;
 class GameObject : public BaseClass{
 public:
 
-    virtual uint32_t GetObjectId() = 0;
+    virtual uint32_t GetObjectId() const = 0;
     virtual GameObject * CreateInstance() = 0;
+    virtual std::unique_ptr<GameObject> clone() const = 0; // clone 함수 추가
+    virtual void update(const GameObject& source) = 0; // update 함수 추가 
 
 };
 
@@ -69,6 +78,19 @@ public:
 
 };
 
+class Chat : public GameObject{
+public:
+    uint32_t sessionId;
+    std::string chat;
+
+    OBJECT_IDENTIFICATION(202022 , Chat)
+
+    REFLECTABLE(Chat,
+        MemberVariable("sessionId" , Type::Int32 , OffsetOf(Chat , sessionId)),
+        MemberVariable("chat" , Type::String , OffsetOf(Chat , chat)),
+    )
+};
+
 
 
 
@@ -77,6 +99,7 @@ public:
 // 게임 오브젝트의 생성을 담당
 class GameObjectRegistry{
 public:
+    // 싱글톤 패턴
     static GameObjectRegistry * Get(){
         static GameObjectRegistry instance;
         return &instance;
@@ -86,10 +109,18 @@ public:
         return registry[objectId]->CreateInstance();
     }
 
+    
+    // 게임 오브젝트를 등록
+    void RegistGameObject(GameObject * obj){
+        registry[obj->GetObjectId()] = obj;
+    }
+
 private:
+    // 사용할 게임 오브젝트들을 등록
     GameObjectRegistry(){
         OBJECT_REGIST(SampleObject)
         OBJECT_REGIST(SampleObject2)
+        OBJECT_REGIST(Chat)
     }
     std::unordered_map<uint32_t , GameObject *> registry;
 
@@ -107,8 +138,11 @@ public:
         MemberVariable("networkId" , Type::Int32 , OffsetOf(GameObjectWrapper , networkId)),
         MemberVariable("objectId" , Type::Int32 , OffsetOf(GameObjectWrapper , objectId)),
         MemberVariable("obj" , Type::Class , OffsetOf(GameObjectWrapper , obj) , Type::Class, [this](BaseClass * cls){
+            /* 
+            반환 함수는 static 함수이기 때문에 처음 호출될 때 값이 고정됨. 따라서 동적으로 객체를 반환하기 위해
+            현재 직렬화 되고있는 Wrapper의 주소를 받아 직전에 직렬화 된 objectId를 활용해 레지스트리의 CreateInstance 함수를 실행한다.
+            */
             return GameObjectRegistry::Get()->GetGameObject(((GameObjectWrapper *)cls)->objectId);
         }),
-
     )
 };

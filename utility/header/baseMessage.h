@@ -34,12 +34,12 @@ public:
 class IntoNetworkGroup : public BaseMessage{
 public:
     uint32_t sessionId;
-    uint32_t networkId;
+    uint32_t networkGroup;
 
     MESSAGE_IDENTIFICATION(2,IntoNetworkGroup)
     REFLECTABLE(IntoNetworkGroup,
         MemberVariable("sessionId", Type::Int32, OffsetOf(IntoNetworkGroup, sessionId)),
-        MemberVariable("networkId", Type::Int32, OffsetOf(IntoNetworkGroup, networkId))
+        MemberVariable("networkGroup", Type::Int32, OffsetOf(IntoNetworkGroup, networkGroup))
     )
 
 };
@@ -83,5 +83,21 @@ public:
         // 클래스 포인터 타입일 경우에는 반환 함수를 꼭 추가해야함
         MemberVariable("me", Type::Class, OffsetOf(Command, me) , Type::Class , [](BaseClass * cls){return new Player();}),
         MemberVariable("cmdDeck", Type::Vector, OffsetOf(Command, cmdDeck) , Type::Class , [](BaseClass * cls){return new Player();})
+    )
+};
+
+class ChatMessage : public BaseMessage{
+public:
+    uint32_t sessionId;
+    uint32_t networkGroup;
+    std::string chat;
+
+    MESSAGE_IDENTIFICATION(21,ChatMessage)
+
+    REFLECTABLE(ChatMessage,
+        MemberVariable("sessionId", Type::Int32, OffsetOf(ChatMessage, sessionId)),
+        // 클래스 포인터 타입일 경우에는 반환 함수를 꼭 추가해야함
+        MemberVariable("networkGroup", Type::Int32, OffsetOf(ChatMessage, networkGroup)),
+        MemberVariable("chat", Type::String, OffsetOf(ChatMessage, chat))
     )
 };

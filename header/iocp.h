@@ -84,6 +84,7 @@ protected:
     virtual bool InitWinsock();                   // WinSock 초기화
     virtual bool CreateListenSocket();            // 리슨 소켓 생성
     virtual bool CreateIocp();                    // IOCP 생성
+    virtual void SetMessageManager();             // 메세지 매니저 세팅
     virtual void PostAccept();                    // 클라이언트 Accept 비동기 예약
     virtual void AcceptLoop();                    // 클라이언트 Accept 루프
     virtual void WorkerThread();                  // 워커 쓰레드 함수
@@ -98,4 +99,6 @@ private:
     
 
     uint32_t sessionId;
+
+    std::unordered_map<uint32_t , std::vector<uint32_t>> networkGroup;
 };

@@ -1,6 +1,8 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
+#include <vector>
 #include "outputMemoryStream.h"
 #include "inputMemoryStream.h"
 #include "iocpClient.h"
@@ -9,6 +11,17 @@
 using namespace std;
 
 // #pragma comment(lib, "ws2_32.lib")
+
+
+
+void chatThread(){
+    std::cout<<"chatThread 시작"<<"\n";
+    while(1){
+        uint32_t id = GameObjectManager::Get()->PopUpdatedNetworkId();
+        Chat * chat = (Chat *)GameObjectManager::Get()->ObjectToAddress(id);
+        std::cout<<chat->sessionId<<" : "<<chat->chat<<"\n";
+    }
+}
 
 int main(){
     SetConsoleOutputCP(CP_UTF8);  // 콘솔 출력 인코딩을 UTF-8로 설정
@@ -33,7 +46,7 @@ int main(){
     });
 
     client.SetSendProcess([&](){
-        cout<<"전송 완료 !!";
+        cout<<"전송 완료 !!\n";
         return;
     });
 
@@ -72,28 +85,37 @@ int main(){
     r->objList.push_back(&o);
     r->objList.push_back(&o2);
 
-    int i = 0;
+    int room = 0;
+    std::cin>>room;
+
+    IntoNetworkGroup * into = new IntoNetworkGroup();
+
+    into->sessionId = client.GetSessionId();
+    into->networkGroup = room;
+
+    client.Send(GAME , into);
+
+    std::vector<std::thread> th;
+    th.emplace_back([]{chatThread();});
     
+    std::cout<<"나의 세션 아이디 : "<<into->sessionId<<"\n";
+    std::cout<<"나의 네트워크 그룹 : "<<room<<"\n";
     while (true) {
         std::string msg;
         std::cout << "> ";
-        std::getline(std::cin, msg);
+        std::cin>>msg;
         
         if (msg == "exit")
         break;
         
-        if(i % 2 ==0) client.Send(GAME , r);
+        std::shared_ptr<ChatMessage> ch = std::make_shared<ChatMessage>();
 
-        if(i % 2 ==1) client.Send(GAME , cmd);
-        i++;
+        ch->sessionId = client.GetSessionId();
+        ch->networkGroup = room;
+        ch->chat = msg;
 
-        // if (!client.SendToServer(msg)) {
-        //     break;
-        // }
+        client.Send(GAME , ch);
 
-        // if (!client.ReceiveMessage()) {
-        //     break;
-        // }
     }
 
     return 0;

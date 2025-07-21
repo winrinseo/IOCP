@@ -12,6 +12,7 @@ bool IocpServer::Start() {
     if (!InitWinsock()) return false;
     if (!CreateIocp()) return false;
     if (!CreateListenSocket()) return false;
+    SetMessageManager();
 
     if (CreateIoCompletionPort((HANDLE)listenSocket_, iocpHandle_, LISTENSOCKET_ID, 0) == NULL) {
         std::cerr << "리슨 소켓을 IOCP에 등록 실패: " << GetLastError() << "\n";

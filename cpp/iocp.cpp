@@ -90,12 +90,24 @@ bool Iocp::CreateListenSocket() {
     return true;
 }
 
+// 메세지 매니저 세팅
+void Iocp::SetMessageManager(){
+    messageManager.SetSendGroup([this](uint32_t networkGroupId, char* buffer, int size){
+        for(uint32_t & sessionId : this->networkGroup[networkGroupId]){
+            if(connects_.find(sessionId) != connects_.end())
+                connects_[sessionId]->Send(buffer , size);
+        }
+    });
+    
+    messageManager.ReplicationRun(5);
+}
+
 //iocp 시작
 bool Iocp::Start() {
     if (!InitWinsock()) return false;
     if (!CreateIocp()) return false;
     if (!CreateListenSocket()) return false;
-
+    SetMessageManager();
     // 서버 동작 중엔 RPC 등록 불가능
     messageManager.RegistRock();
 
@@ -398,36 +410,47 @@ void Iocp::OnSendCompletion(){
     try{
         SendProcess();
     }catch(const std::exception& e){
-        std::cerr<<"ReceiveProcess 에러 : "<<e.what()<<"\n";
+        std::cerr<<"SendProcess 에러 : "<<e.what()<<"\n";
     }
 };
 
+// 기본 RPC 함수를 등록
 void Iocp::setPrimaryProceser(){
+    // 서버에 연결되었다는 알림림
     messageManager.regist(new Hello() , [this](BaseMessage * msg){
         Hello * hello = (Hello*) msg;
         this->sessionId = hello->sessionId;
+        std::cout<<"서버 연결 완료!!"<<std::endl;
     });
 
+    // 서버의 특정 그룹에 연결
     messageManager.regist(new IntoNetworkGroup() , [this](BaseMessage * msg){
+        IntoNetworkGroup * data = (IntoNetworkGroup *)msg;
         
+        networkGroup[data->networkGroup].push_back(data->sessionId);
     });
 
     messageManager.regist(new ReplicationData() , [this](BaseMessage * msg){
         ReplicationData * objectData = (ReplicationData*) msg;
         
+        GameObjectManager * gm = GameObjectManager::Get();
 
-        std::cout<<"sessionId : "<<objectData->sessionId<<" networkGroup : "<<objectData->networkGroup<<"\n";
-        GameObjectWrapper * w = objectData->objList[0];
-        GameObjectWrapper * w2 = objectData->objList[1];
-        SampleObject * s = (SampleObject *) objectData->objList[0]->obj;
-        SampleObject2 * s2 = (SampleObject2 *) objectData->objList[1]->obj;
+        for(auto & it : objectData->objList){
+            uint32_t & networkId = it->networkId;
+            uint32_t & objectId = it->objectId;
 
-        std::cout<<objectData->objList.size()<<" "<<"\n";
-        std::cout<<w->networkId<<" "<<w->objectId<<" "<<"\n";
-        std::cout<<s->hp<<" "<<s->mp<<" "<<s->x<<" "<<s->y<<" "<<s->z<<"\n";
+            
+            if(objectId == 0){ // 오브젝트 아이디가 0으로 오면 삭제
+                gm->DeleteObjectFromOther(objectData->networkGroup , networkId);
 
-        std::cout<<w2->networkId<<" "<<w2->objectId<<" "<<"\n";
-        std::cout<<s2->x<<" "<<s2->y<<" "<<s2->z<<"\n";
+            }else if(gm->ObjectToAddress(networkId) == nullptr){ // 받는 쪽에서 없으면 생성
+                gm->CreateObjectFromOther(objectData->networkGroup,networkId, it->obj);
+
+            }else{ // 있으면 업데이트
+                gm->UpdateObjectFromOther(objectData->networkGroup , networkId , it->obj);
+
+            }
+        }
 
     });
 }

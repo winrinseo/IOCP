@@ -2,6 +2,7 @@
 
 
 MessageManager::MessageManager() : inMemoryStreamPool(10) , outMemoryStreamPool(10){
+    gameObjectManager = GameObjectManager::Get();
     registRock = false;
 }
 
@@ -9,6 +10,7 @@ MessageManager::MessageManager(uint32_t pool_size) :
     inMemoryStreamPool(pool_size), 
     outMemoryStreamPool(pool_size){
 
+    gameObjectManager = GameObjectManager::Get();
     registRock = false;
 }
 
@@ -79,4 +81,50 @@ void MessageManager::Serialize(BaseMessage * msg , char ** output_buffer, int * 
     // 직렬화 정보 반환
     *output_buffer = (char *) outMemoryStream->GetBuffer();
     *output_length = outMemoryStream->GetLength();
+}
+
+void MessageManager::SetSendGroup(std::function<void(uint32_t , char* , int)> f){
+    sendGroup = f;
+}
+
+void MessageManager::ReplicationRun(uint32_t thread_count){
+
+    for(int i = 0;i<thread_count;i++)
+        runThread.emplace_back([this](){ replicationThread(); });
+}
+
+
+void MessageManager::replicationThread(){
+    while(1){
+        uint32_t networkGroup;
+        // 없으면 블록
+        auto replication_data = gameObjectManager->PopReplication(&networkGroup);
+        
+        std::unique_ptr<ReplicationData> data = std::make_unique<ReplicationData>();
+
+        data->sessionId = 0;
+        data->networkGroup = networkGroup;
+
+        while(!replication_data.empty()){
+            
+            auto data_piece = std::move(replication_data.front());
+            replication_data.pop();
+
+            GameObjectWrapper * wrapper = new GameObjectWrapper();
+            wrapper->networkId = data_piece.first;
+            wrapper->objectId = data_piece.second->GetObjectId();
+
+            // 만약 삭제된 객체면
+            if(gameObjectManager->ObjectToAddress(wrapper->networkId) == nullptr)
+                wrapper->objectId = 0; //objectId는 0으로 바꿔 삭제되었음을 알림
+            
+            wrapper->obj = data_piece.second.release(); // 메모리 누수 발생 지점 (일단 테스트 하고 개선)
+            data->objList.push_back(wrapper);
+        }
+
+        char * buffer;
+        int size;
+        Serialize((BaseMessage*)data.get() , &buffer , &size );
+        sendGroup(data->networkGroup , buffer , size);
+    }
 }

@@ -30,6 +30,20 @@ int main(){
 
     iocp.RpcRegist(new Command() , f);
 
+    iocp.RpcRegist(new ChatMessage() , [&](BaseMessage * msg){
+        ChatMessage * chat = (ChatMessage*) msg;
+
+        Chat * chatObject = new Chat();
+        chatObject->sessionId = chat->sessionId;
+        chatObject->chat = chat->chat;
+
+        std::cout<<chatObject->chat<<"\n";
+        GameObjectManager::Get()->CreateObject(chat->networkGroup , chatObject);
+
+    });
+
+
+
 
     iocp.SetReceiveProcess([&](uint32_t & sessionId ,const char * buffer , DWORD bytesTransferred){
         // std::cout<<"RECEIVE!!"<<" ";
