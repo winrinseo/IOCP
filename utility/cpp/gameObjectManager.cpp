@@ -11,6 +11,7 @@ void GameObjectManager::CreateObject(uint32_t networkGroup , GameObject * obj){
         std::lock_guard<std::mutex> lock(idMutex);
         net_id = ++networkIdCounter;
     }
+
     objectToAddress[net_id] = obj;
     actingObject[networkGroup][net_id] = std::unique_ptr<GameObject>(obj);
 
@@ -21,6 +22,7 @@ void GameObjectManager::CreateObject(uint32_t networkGroup , GameObject * obj){
 }
 
 void GameObjectManager::UpdateObject(uint32_t networkGroup, uint32_t networkId, GameObject * obj){
+    // 네트워크 그룹 개별 잠금
     std::lock_guard<std::mutex> lock(groupMutex[networkGroup]);
 
     // 기존 객체를 업데이트 ( objectId가 다르면 업데이트하지 않음 )
@@ -53,7 +55,7 @@ void GameObjectManager::CreateObjectFromOther(uint32_t networkGroup , uint32_t n
         actingObject[networkGroup][networkId] = std::unique_ptr<GameObject>(obj);
     }
 
-    // 업데이트 대기열에 등록
+    // 업데이트 완료 대기큐에 등록
     {
         std::lock_guard<std::mutex> lock(updatedQueueMutex);
         updatedObject.push(networkId);
@@ -131,3 +133,4 @@ GameObject * GameObjectManager::ObjectToAddress(uint32_t networkId){
         return nullptr;
     return objectToAddress[networkId];
 }
+

@@ -132,7 +132,7 @@ bool Iocp::Start() {
 }
 
 
-//클라이언트 비동기 연결 예약 (환경이 문제인지는 모르겠는데 안되서 나중에 해야지)
+//클라이언트 비동기 연결 예약
 void Iocp::PostAccept() {
     // 더미
     SOCKADDR_IN client_addr;
@@ -297,6 +297,9 @@ void Iocp::WorkerThread() {
 
             // 원격 프로시저 호출
             messageManager.CallRPC(msg);
+
+            // 재귀적으로 delete하거나 추후 스마트 포인터로 변경
+            delete msg;
 
             // 수신 완료시 수행 할 작업
             OnReceiveCompletion(sessionId , context->buffer, bytesTransferred);

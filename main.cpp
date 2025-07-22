@@ -28,7 +28,20 @@ int main(){
     IocpServer iocp(9000);
 
 
-    iocp.RpcRegist(new Command() , f);
+    iocp.RpcRegist(new Command() , [](BaseMessage * msg){
+        Command * cmd = (Command*) msg;
+        std::cout<<"내 정보 : "<<cmd->me->mId<<" "<<cmd->me->mName<<" ";
+        for(int j = 0;j<cmd->me->mScore.size(); j++)
+                std::cout<<cmd->me->mScore[j]<<" ";
+        std::cout<<"\n";
+        for(int i = 0;i<cmd->cmdDeck.size();i++){
+                std::cout<<"팀 정보 : "<<cmd->cmdDeck[i]->mId<<" "<<cmd->cmdDeck[i]->mName<<" ";
+                for(int j = 0;j<cmd->cmdDeck[i]->mScore.size(); j++)
+                    std::cout<<cmd->cmdDeck[i]->mScore[j]<<" ";
+                std::cout<<"\n";
+        }
+        return;
+    });
 
     iocp.RpcRegist(new ChatMessage() , [&](BaseMessage * msg){
         ChatMessage * chat = (ChatMessage*) msg;

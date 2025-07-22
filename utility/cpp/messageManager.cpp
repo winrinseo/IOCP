@@ -122,9 +122,11 @@ void MessageManager::replicationThread(){
             data->objList.push_back(wrapper);
         }
 
+        // 직렬화
         char * buffer;
         int size;
         Serialize((BaseMessage*)data.get() , &buffer , &size );
+        // 네트워크 그룹에 메세지 발신
         sendGroup(data->networkGroup , buffer , size);
     }
 }
