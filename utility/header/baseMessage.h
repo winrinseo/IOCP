@@ -61,6 +61,57 @@ public:
 
 };
 
+// 객체 생성을 요청하는 메세지
+class CreateObjectOrder : public BaseMessage{
+public:
+    uint32_t sessionId;
+    uint32_t networkGroup;
+    
+    GameObjectWrapper * wrapper;
+
+    MESSAGE_IDENTIFICATION(4,CreateObjectOrder)
+
+    REFLECTABLE(CreateObjectOrder,
+        MemberVariable("sessionId", Type::Int32, OffsetOf(CreateObjectOrder, sessionId)),
+        MemberVariable("networkGroup", Type::Int32, OffsetOf(CreateObjectOrder, networkGroup)),
+        MemberVariable("wrapper", Type::Class, OffsetOf(CreateObjectOrder, wrapper))
+    )
+};
+
+// 객체 갱신을 요청하는 메세지
+class UpdateObjectOrder : public BaseMessage{
+public:
+    uint32_t sessionId;
+    uint32_t networkGroup;
+    
+    GameObjectWrapper * wrapper;
+
+    MESSAGE_IDENTIFICATION(5,UpdateObjectOrder)
+
+    REFLECTABLE(UpdateObjectOrder,
+        MemberVariable("sessionId", Type::Int32, OffsetOf(UpdateObjectOrder, sessionId)),
+        MemberVariable("networkGroup", Type::Int32, OffsetOf(UpdateObjectOrder, networkGroup)),
+        MemberVariable("wrapper", Type::Class, OffsetOf(UpdateObjectOrder, wrapper))
+    )
+};
+
+// 객체 삭제을 요청하는 메세지
+class DeleteObjectOrder : public BaseMessage{
+public:
+    uint32_t sessionId;
+    uint32_t networkGroup;
+    
+    GameObjectWrapper * wrapper;
+
+    MESSAGE_IDENTIFICATION(6,DeleteObjectOrder)
+
+    REFLECTABLE(DeleteObjectOrder,
+        MemberVariable("sessionId", Type::Int32, OffsetOf(DeleteObjectOrder, sessionId)),
+        MemberVariable("networkGroup", Type::Int32, OffsetOf(DeleteObjectOrder, networkGroup)),
+        MemberVariable("wrapper", Type::Class, OffsetOf(DeleteObjectOrder, wrapper))
+    )
+};
+
 
 /* 필수 메세지 */
 
@@ -101,3 +152,4 @@ public:
         MemberVariable("chat", Type::String, OffsetOf(ChatMessage, chat))
     )
 };
+

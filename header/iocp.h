@@ -52,6 +52,10 @@ public:
     bool Send(const uint32_t & session_id , std::shared_ptr<BaseMessage> msg);  // 해당 세션에 메세지 송신
     bool Send(const uint32_t & session_id , std::unique_ptr<BaseMessage> msg);  // 해당 세션에 메세지 송신
 
+    std::unordered_map<uint32_t, std::unique_ptr<Session>> getConnect(){
+        return connects_;
+    }
+
 protected:
     std::string ip_;                                    // 연결 요청 IP
     int port_;                                          // 사용할 포트 번호

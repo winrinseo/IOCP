@@ -120,7 +120,7 @@ public:
 };
 ```
 
-#### 서버 사이드: RPC 정의 및 등록
+#### 서버 측: RPC 정의 및 등록
 
 ```cpp
 iocp.RpcRegist(new ChatMessage(), [&](BaseMessage* msg) {
@@ -133,7 +133,7 @@ iocp.RpcRegist(new ChatMessage(), [&](BaseMessage* msg) {
 });
 ```
 
-#### 클라이언트 사이드: RPC 호출
+#### 클라이언트 측: RPC 호출
 
 ```cpp
 std::shared_ptr<ChatMessage> cm = std::make_shared<ChatMessage>();
