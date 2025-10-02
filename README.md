@@ -3,6 +3,8 @@
 <details>
 <summary>IOCP_lib 서버_포트폴리오(펼쳐주세요)</summary>
 
+[pdf로 펼치기](./ref/README.pdf)
+
 ![portfolio_img](./ref/1.png)
 ![portfolio_img](./ref/2.png)
 ![portfolio_img](./ref/3.png)
